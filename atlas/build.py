@@ -216,11 +216,22 @@ class Site:
         names = " and ".join(
             f'the <a href="https://github.com/{e(p["repo"])}">{e(p["name"])}</a>'
             for p in self.cfg["site"].get("serving", []))
-        tf = ""
-        if len(texts) > 1:
-            tf = ('<button data-text="all" aria-pressed="true">All texts</button>' +
-                  "".join(f'<button data-text="{e(t["id"])}" aria-pressed="false">'
-                          f'{e(t["title"])}</button>' for t in texts))
+        # One tab per project served. A tab whose text has no export yet still
+        # appears, and opens on a note saying the translation is on its way.
+        serving = self.cfg["site"].get("serving", [])
+        tabs = ['<button role="tab" id="tab-all" data-text="all" aria-selected="true">All texts</button>']
+        soon = []
+        for sv in serving:
+            ready = sv["id"] in self.exports
+            mark = "" if ready else '<span class="soonmark">in progress</span>'
+            tabs.append(f'<button role="tab" id="tab-{e(sv["id"])}" data-text="{e(sv["id"])}" '
+                        f'aria-selected="false" tabindex="-1">{e(sv["tab"])}{mark}</button>')
+            if not ready:
+                soon.append(f"""<section class="soon" id="soon-{e(sv["id"])}" hidden>
+  <h2>{e(sv["tab"])} <span class="zh">{e(sv.get("title_zh", ""))}</span></h2>
+  <p>{e(sv.get("soon", "This translation is in progress."))}</p>
+  <p><a href="https://github.com/{e(sv["repo"])}">Follow the translation on GitHub</a></p>
+</section>""")
         noscript = ""
         if char:
             c = self.chars[char]
@@ -241,17 +252,20 @@ class Site:
       where the character appears, and how each translation renders it.</p>
       <p class="texts">Serving {names}.</p>
     </div>
-    <div class="counts">
+  </div>
+  <div class="scope">
+    <div class="tabs" role="tablist" aria-label="Texts">{''.join(tabs)}</div>
+    <div class="counts" aria-live="polite">
       <div><span id="k-ch">—</span><div class="lab">characters</div></div>
       <div><span id="k-oc">—</span><div class="lab">occurrences</div></div>
       <div><span id="k-pt">—</span><div class="lab">parts</div></div>
     </div>
   </div>
 </header>
+{''.join(soon)}
 <div class="controls">
   <input type="search" id="q" placeholder="Search a character, sound, or meaning"
          aria-label="Search characters">
-  {tf}
   <button id="f-lock" aria-pressed="false">Settled terms</button>
   <button id="f-real" aria-pressed="true">Hide grammar</button>
   <button id="s-freq" aria-pressed="true">By frequency</button>

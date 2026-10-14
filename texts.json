@@ -5,12 +5,19 @@
     "project_base": "/chinese-atlas/",
     "serving": [
       {
+        "id": "tao-te-ching",
         "name": "Open Tao Te Ching",
+        "tab": "Tao Te Ching",
+        "title_zh": "道德經",
         "repo": "opencosmos-ai/taoteching"
       },
       {
+        "id": "i-ching",
         "name": "I Ching",
-        "repo": "opencosmos-ai/iching"
+        "tab": "I Ching",
+        "title_zh": "易經",
+        "repo": "opencosmos-ai/iching",
+        "soon": "The I Ching translation is in progress. Its characters arrive here as the hexagrams are drafted, each with its parts, its 說文 analysis, and every line it stands in."
       }
     ]
   },

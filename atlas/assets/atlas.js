@@ -28,7 +28,12 @@ const SITE = 'Open Classical Chinese Character Atlas';
 // ---------------------------------------------------------------- per-text view
 // A character carries one record per text it appears in (c.t[tid]). The grid
 // shows either one text or all of them; this folds the records into one row.
-let tf = 'all';
+// The tab in force: 'all', or one text's id. It rides in the URL (?text=),
+// so a shared link keeps its context.
+const TAB_IDS = [...document.querySelectorAll('[role="tab"]')].map(b => b.dataset.text);
+let tf = new URLSearchParams(location.search).get('text') || 'all';
+if (!TAB_IDS.includes(tf)) tf = 'all';
+const scopeQS = () => tf === 'all' ? '' : '?text=' + encodeURIComponent(tf);
 function view(c){
   const ids = (tf === 'all' ? TEXTS.map(t => t.id) : [tf]).filter(id => c.t[id]);
   if (!ids.length) return null;
@@ -89,7 +94,7 @@ function entryLinks(c, only){
     for (const slug of r.entries || []){
       const e = (D.entries[t.id] || {})[slug]; if (!e) continue;
       h += `<a class="ent" href="${entryUrl(t.id, slug)}">
-        <span class="lab">${esc(t.title)} · glossary${e.status === 'open' ? ' · open' : ''}</span>
+        <span class="lab">${only ? 'glossary entry' : esc(t.title) + ' · glossary'}${e.status === 'open' ? ' · open' : ''}</span>
         <span class="t"><span class="zh">${esc(e.term)}</span> ${esc(e.pinyin)} — ${esc(e.render)}
         <span class="go">→</span></span></a>`;
     }
@@ -117,11 +122,10 @@ function heatSection(c, t){
   const wShare = allChars ? Math.round(100 * wChars / allChars) : 0;
   const useShare = r.n ? Math.round(100 * wUses / r.n) : 0;
   const on = W && wOn;
-  const single = TEXTS.filter(x => c.t[x.id]).length === 1;
 
   let h = `<section class="blk">
     <span class="lab" style="display:flex;justify-content:space-between;
-      align-items:center;gap:10px">Where it appears${single ? '' : ' · ' + esc(t.title)}
+      align-items:center;gap:10px">Where it appears
       ${W ? `<button class="wtog" type="button" aria-pressed="${on}"
         title="${esc(W.name)}, ${esc(W.date)} — the oldest surviving copy of this text. A witness is a copy that testifies to what the text said at some point; it is not a source the text came from."
         style="padding:3px 8px;font-size:10px">Oldest witness</button>` : ''}</span>
@@ -189,7 +193,7 @@ function heatSection(c, t){
   const lines = D.lines[t.id];
   const shown = unitFilter && unitFilter[0] === t.id
     ? occ.filter(e => +e[0].split('.')[0] === unitFilter[1]) : occ;
-  h += `<section class="blk"><span class="lab">In the text${single ? '' : ' · ' + esc(t.title)}</span>`;
+  h += `<section class="blk"><span class="lab">In the text</span>`;
   if (unitFilter && unitFilter[0] === t.id)
     h += `<p class="legend" style="margin:0 0 9px">${Unit} ${unitFilter[1]} only —
       <button class="allu" type="button" style="padding:2px 7px">show all
@@ -219,29 +223,28 @@ function heatSection(c, t){
 function cardHtml(chr, compact){
   const c = byChar[chr];
   if (!c) return '';
-  const present = TEXTS.filter(t => c.t[t.id] && (tf === 'all' || tf === t.id || compact));
+  // Layer 1 is shared by every text: the character, its parts, 說文. Layer 2 is
+  // how each text in scope reads it, each line labelled with its text. Layer 3
+  // is one section per text: its glossary, its map, its lines.
+  const scope = TEXTS.filter(t => compact || tf === 'all' || tf === t.id);
+  const present = scope.filter(t => c.t[t.id]);
   const tags = [];
   if (c.kind) tags.push(`<span class="tag">${esc(c.kind.replace(/-/g, ' '))}</span>`);
   if (c.rad) tags.push(`<span class="tag">filed under ${esc(c.rad)}</span>`);
 
   let meta = `<div class="pin">${esc(c.p || '')}</div>`;
-  if (present.length === 1){
-    const r = c.t[present[0].id];
-    const t2 = [];
+  for (const t of present){
+    const r = c.t[t.id], t2 = [];
     if (r.lock) t2.push('<span class="tag lock">settled rendering</span>');
-    if (r.tier) t2.push(`<span class="tag">${esc(r.tier)}</span>`);
-    meta += `<div class="gloss">${esc(r.g || 'not yet glossed')}</div>
+    if (r.tier && r.tier !== 'locked') t2.push(`<span class="tag">${esc(r.tier)}</span>`);
+    meta += `<div class="by"><span class="lab">${esc(t.title)}</span>
+      <div class="gloss">${esc(r.g || 'not yet glossed')}</div>
       ${r.r && r.r !== r.g ? `<div class="render">rendered “${esc(r.r)}”</div>` : ''}
-      <div class="tags">${t2.concat(tags).join('')}</div>`;
-  } else {
-    for (const t of present){
-      const r = c.t[t.id];
-      meta += `<div class="by"><span class="lab">${esc(t.title)}</span>
-        <div class="gloss">${esc(r.g || 'not yet glossed')}</div>
-        ${r.lock ? '<div class="tags"><span class="tag lock">settled rendering</span></div>' : ''}</div>`;
-    }
-    meta += `<div class="tags">${tags.join('')}</div>`;
+      ${t2.length ? `<div class="tags">${t2.join('')}</div>` : ''}</div>`;
   }
+  if (!present.length && tf !== 'all' && TX[tf])
+    meta += `<p class="legend">${esc(c.c)} does not appear in the ${esc(TX[tf].title)}.</p>`;
+  if (tags.length) meta += `<div class="tags shared">${tags.join('')}</div>`;
   let h = `<div class="hero"><div class="big">${esc(c.c)}</div>
     <div class="meta">${meta}</div></div>`;
 
@@ -281,9 +284,13 @@ function cardHtml(chr, compact){
     return h;
   }
 
-  const ents = entryLinks(c);
-  if (ents) h += `<section class="blk"><span class="lab">Glossary</span>${ents}</section>`;
-  for (const t of present) h += heatSection(c, t);
+  for (const t of present){
+    h += `<div class="tx"><div class="txhead">${esc(t.title)}
+      <span class="zh">${esc(t.title_zh)}</span></div>`;
+    const ents = entryLinks(c, t.id);
+    if (ents) h += `<section class="blk">${ents}</section>`;
+    h += heatSection(c, t) + `</div>`;
+  }
   return h;
 }
 
@@ -327,10 +334,15 @@ const grid = el('grid'), card = el('card'), status = el('status');
 let sel = null, sort = 'freq';
 const filter = {q: '', lock: false, real: true, comp: null};
 
-el('k-ch').textContent = CH.length.toLocaleString();
-el('k-oc').textContent = CH.reduce((a, c) =>
-  a + Object.values(c.t).reduce((b, r) => b + r.n, 0), 0).toLocaleString();
-el('k-pt').textContent = Object.keys(BUILT).length.toLocaleString();
+function counts(){
+  const ready = tf === 'all' || TX[tf];
+  const inScope = ready ? CH.filter(c => view(c)) : [];
+  const names = new Set(inScope.map(c => c.c));
+  const parts = Object.entries(BUILT).filter(([, m]) => m.some(x => names.has(x[0]))).length;
+  el('k-ch').textContent = ready ? inScope.length.toLocaleString() : '—';
+  el('k-oc').textContent = ready ? inScope.reduce((a, c) => a + view(c).n, 0).toLocaleString() : '—';
+  el('k-pt').textContent = ready ? parts.toLocaleString() : '—';
+}
 
 function visible(){
   let out = CH.map(c => [c, view(c)]).filter(([, v]) => v);
@@ -358,7 +370,7 @@ function draw(){
   for (const [c, v] of list){
     const a = document.createElement('a');
     a.className = 'cell' + (v.lock ? ' locked' : '');
-    a.href = charUrl(c.c);
+    a.href = charUrl(c.c) + scopeQS();
     a.setAttribute('aria-current', sel === c.c ? 'true' : 'false');
     a.title = `${c.c} ${c.p || ''} — ${v.g || 'not yet glossed'} · ${v.n}×`;
     a.innerHTML = `<span class="gl">${esc(c.c)}</span><span class="py">${esc(c.p || '')}</span>`;
@@ -385,12 +397,12 @@ function show(chr){
 }
 
 function go(chr, push){
-  if (!byChar[chr]) return;
+  if (!chr || !byChar[chr]) return;
   sel = chr; occLimit = 6; unitFilter = null;
   draw(); show(chr);
   const c = byChar[chr], v = view(c) || {};
   document.title = `${chr} ${c.p || ''} — ${v.g || 'not yet glossed'} · ${SITE}`;
-  if (push) history.pushState({c: chr}, '', charUrl(chr));
+  if (push) history.pushState({c: chr}, '', charUrl(chr) + scopeQS());
   if (window.innerWidth <= 980 && push) card.scrollIntoView({behavior: 'smooth', block: 'start'});
 }
 window.addEventListener('popstate', e => go((e.state && e.state.c) || START, false));
@@ -410,11 +422,40 @@ el('s-cent').onclick = () => { sort = 'cent';
   el('s-cent').setAttribute('aria-pressed', 'true');
   el('s-freq').setAttribute('aria-pressed', 'false'); draw(); };
 el('clear').onclick = () => { filter.comp = null; draw(); };
-document.querySelectorAll('[data-text]').forEach(b => b.onclick = () => {
-  tf = b.dataset.text;
-  document.querySelectorAll('[data-text]').forEach(x =>
-    x.setAttribute('aria-pressed', String(x === b)));
-  draw(); if (sel) show(sel);
+const TABS = [...document.querySelectorAll('[role="tab"]')];
+function setTab(id, push){
+  tf = id;
+  for (const b of TABS){
+    const on = b.dataset.text === id;
+    b.setAttribute('aria-selected', String(on));
+    b.tabIndex = on ? 0 : -1;
+  }
+  const ready = id === 'all' || !!TX[id];
+  document.querySelectorAll('.soon').forEach(p => p.hidden = p.id !== 'soon-' + id);
+  document.querySelector('.controls').hidden = !ready;
+  document.querySelector('.room').hidden = !ready;
+  counts();
+  if (!ready){
+    if (push) history.replaceState(history.state, '', location.pathname + scopeQS());
+    return;
+  }
+  // Keep the character if this text has it; otherwise open on the text's
+  // commonest character, so the card always has something to say.
+  if (!sel || !view(byChar[sel])){
+    const first = visible()[0];
+    if (first) sel = first[0].c;
+  }
+  if (push) history.replaceState({c: sel}, '', (sel ? charUrl(sel) : location.pathname) + scopeQS());
+  go(sel, false);
+}
+TABS.forEach((b, i) => {
+  b.onclick = () => setTab(b.dataset.text, true);
+  b.onkeydown = e => {
+    const k = {ArrowRight: 1, ArrowLeft: -1}[e.key];
+    if (!k) return;
+    const nb = TABS[(i + k + TABS.length) % TABS.length];
+    nb.focus(); setTab(nb.dataset.text, true);
+  };
 });
 
 // ?built=巾 arrives from a component tile on an entry page.
@@ -425,5 +466,6 @@ if (built && BUILT[built]){
 }
 const START = document.body.dataset.char || '道';
 history.replaceState({c: START}, '', location.href);
-go(START, false);
+sel = START;
+setTab(tf, false);
 })();
