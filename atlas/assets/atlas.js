@@ -85,7 +85,7 @@ function partBtn(ch, role, link){
       title="${on ? 'Showing every character built from ' + esc(ch) + ' — click to reset'
                   : 'Show every character built from ' + esc(ch)}" style="text-decoration:none">
       <span class="pg">${esc(ch)}</span>
-      <span class="pt"><b>${esc(g[0] || '?')}</b>
+      <span class="pt">${g[0] ? `<b>${esc(g[0])}</b>` : ''}
       <span${known || role === 'pho' ? '' : ' class="gap"'}>${esc(meaning)}</span></span>
     </${tag}>`;
 }
