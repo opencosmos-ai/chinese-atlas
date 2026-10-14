@@ -1,7 +1,7 @@
 {
   "site": {
     "title": "Open Classical Chinese Character Atlas",
-    "domain": null,
+    "domain": "chinese-atlas.opencosmos.ai",
     "project_base": "/chinese-atlas/"
   },
   "texts": [
