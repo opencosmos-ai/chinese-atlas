@@ -271,7 +271,7 @@ class Site:
   <button id="s-freq" aria-pressed="true">By frequency</button>
   <button id="s-cent" aria-pressed="false">By reach</button>
   <span class="spacer"></span>
-  <button id="clear" hidden>Clear filter</button>
+  <button id="clear" hidden>Reset parts filter</button>
 </div>
 <div class="room">
   <div>

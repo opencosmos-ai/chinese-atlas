@@ -155,7 +155,7 @@ button{
    fill and erase the witness outline. Excluded explicitly rather than by
    scoping, so .more and the inline controls keep the shared button look. */
 button:hover:not(.hc){color:var(--ink);border-color:var(--ink-3)}
-button[aria-pressed="true"]:not(.hc){background:var(--ink);color:var(--paper);
+button[aria-pressed="true"]:not(.hc):not(.part){background:var(--ink);color:var(--paper);
   border-color:var(--ink)}
 .spacer{flex:1}
 
@@ -265,6 +265,10 @@ section.blk > .lab{display:block;margin-bottom:8px;
   overflow:hidden;text-overflow:ellipsis}
 .part .pt span.gap{font-style:italic}
 .part.sem{background:var(--sem-soft);border-color:transparent}
+/* The tile the grid is filtered to. */
+.part.sem[aria-pressed="true"]{border-color:var(--sem);box-shadow:inset 0 0 0 1px var(--sem)}
+.part.pho[aria-pressed="true"]{border-color:var(--pho);box-shadow:inset 0 0 0 1px var(--pho)}
+.resetrow .resetcomp{padding:3px 9px;margin-left:6px;vertical-align:1px}
 .part.sem .pg,.part.sem .pt b{color:var(--sem)}
 .part.pho{background:var(--pho-soft);border-color:transparent}
 .part.pho .pg,.part.pho .pt b{color:var(--pho)}

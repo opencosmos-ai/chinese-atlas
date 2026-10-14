@@ -69,6 +69,8 @@ function textOn(alpha){
 
 // ---------------------------------------------------------------- the card
 let occLimit = 6, unitFilter = null, wOn = false;
+// The part the grid is filtered to (a "Built from" tile), or null.
+let compSel = null;
 
 function partBtn(ch, role, link){
   const g = G[ch] || [null, null];
@@ -76,10 +78,12 @@ function partBtn(ch, role, link){
   const meaning = role === 'sem' ? (g[1] || 'not yet glossed')
                                  : 'sound only — carries no meaning here';
   const tag = link ? 'a' : 'button';
+  const on = !link && compSel === ch;
   const attr = link ? `href="${BASE}?built=${encodeURIComponent(ch)}"`
-                    : `type="button" data-comp="${esc(ch)}"`;
+                    : `type="button" data-comp="${esc(ch)}" aria-pressed="${on}"`;
   return `<${tag} class="part ${role}" ${attr}
-      title="Show every character built from ${esc(ch)}" style="text-decoration:none">
+      title="${on ? 'Showing every character built from ' + esc(ch) + ' — click to reset'
+                  : 'Show every character built from ' + esc(ch)}" style="text-decoration:none">
       <span class="pg">${esc(ch)}</span>
       <span class="pt"><b>${esc(g[0] || '?')}</b>
       <span${known || role === 'pho' ? '' : ' class="gap"'}>${esc(meaning)}</span></span>
@@ -276,6 +280,10 @@ function cardHtml(chr, compact){
     else if (c.pho.length)
       h += `<p class="legend"><strong>Slate</strong> parts were borrowed for
             sound alone and mean nothing here.</p>`;
+    if (!compact && compSel){
+      const n = (BUILT[compSel] || []).filter(x => byChar[x[0]] && view(byChar[x[0]])).length;
+      h += `<p class="legend resetrow">The grid shows only the ${n} character${n === 1 ? '' : 's'} built from <span class="zh">${esc(compSel)}</span>.<button class="resetcomp" type="button">Reset</button></p>`;
+    }
     h += `</section>`;
   } else if (c.kind === 'pictograph'){
     h += `<section class="blk"><span class="lab">Built from</span>
@@ -319,10 +327,11 @@ function cardHtml(chr, compact){
 
 function wireCard(card, chr, rerender){
   card.querySelectorAll('[data-comp]').forEach(b => b.onclick = () => {
-    filter.comp = b.dataset.comp; filter.q = ''; el('q').value = '';
-    filter.real = false; el('f-real').setAttribute('aria-pressed', 'false');
-    draw(); window.scrollTo({top: 0, behavior: 'smooth'});
+    if (compSel === b.dataset.comp) return resetComp();   // a second click resets
+    setComp(b.dataset.comp);
+    window.scrollTo({top: 0, behavior: 'smooth'});
   });
+  card.querySelectorAll('.resetcomp').forEach(b => b.onclick = resetComp);
   card.querySelectorAll('.hc').forEach(b => b.onclick = () => {
     const tid = b.dataset.tid, n = +b.dataset.u;
     if (b.classList.contains('void')) return;
@@ -451,7 +460,23 @@ el('s-freq').onclick = () => { sort = 'freq';
 el('s-cent').onclick = () => { sort = 'cent';
   el('s-cent').setAttribute('aria-pressed', 'true');
   el('s-freq').setAttribute('aria-pressed', 'false'); draw(); };
-el('clear').onclick = () => { filter.comp = null; draw(); };
+// Filtering by a part turns "hide grammar" off (a part's family includes its
+// grammar words); resetting puts back whatever the reader had chosen.
+let realBefore = true;
+function setComp(comp){
+  if (!compSel) realBefore = filter.real;
+  compSel = filter.comp = comp;
+  filter.q = ''; el('q').value = '';
+  filter.real = false; el('f-real').setAttribute('aria-pressed', 'false');
+  draw(); if (sel) show(sel);
+}
+function resetComp(){
+  compSel = filter.comp = null;
+  filter.real = realBefore;
+  el('f-real').setAttribute('aria-pressed', String(filter.real));
+  draw(); if (sel) show(sel);
+}
+el('clear').onclick = resetComp;
 const TABS = [...document.querySelectorAll('[role="tab"]')];
 function setTab(id, push){
   tf = id;
@@ -491,7 +516,7 @@ TABS.forEach((b, i) => {
 // ?built=巾 arrives from a component tile on an entry page.
 const built = new URLSearchParams(location.search).get('built');
 if (built && BUILT[built]){
-  filter.comp = built; filter.real = false;
+  compSel = filter.comp = built; filter.real = false;
   el('f-real').setAttribute('aria-pressed', 'false');
 }
 const START = document.body.dataset.char || '道';
