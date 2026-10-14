@@ -2,15 +2,24 @@
   "site": {
     "title": "Open Classical Chinese Character Atlas",
     "domain": "chinese-atlas.opencosmos.ai",
-    "project_base": "/chinese-atlas/"
+    "project_base": "/chinese-atlas/",
+    "serving": [
+      {
+        "name": "Open Tao Te Ching",
+        "repo": "opencosmos-ai/taoteching"
+      },
+      {
+        "name": "I Ching",
+        "repo": "opencosmos-ai/iching"
+      }
+    ]
   },
   "texts": [
     {
       "id": "tao-te-ching",
       "repo": "opencosmos-ai/taoteching",
       "export": "data/atlas-export.json",
-      "sibling": "../taoteching",
-      "name": "Open Tao Te Ching"
+      "sibling": "../taoteching"
     }
   ]
 }

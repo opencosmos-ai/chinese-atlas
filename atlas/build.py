@@ -210,12 +210,12 @@ class Site:
     # -- the atlas --------------------------------------------------------
     def atlas_main(self, char=None):
         texts = self.data["texts"]
-        # How each text is named on the masthead comes from texts.json, which
-        # knows the project's name; the export only knows the book's.
+        # The projects this atlas serves, named as the projects name themselves
+        # (texts.json site.serving). A project can be listed before its export
+        # joins "texts", so the masthead can name it while its data is on the way.
         names = " and ".join(
-            f'the <a href="https://github.com/{e(c["repo"])}">'
-            f'{e(c.get("name") or t["title"])}</a>'
-            for t in texts for c in self.cfg["texts"] if c["id"] == t["id"])
+            f'the <a href="https://github.com/{e(p["repo"])}">{e(p["name"])}</a>'
+            for p in self.cfg["site"].get("serving", []))
         tf = ""
         if len(texts) > 1:
             tf = ('<button data-text="all" aria-pressed="true">All texts</button>' +
@@ -238,9 +238,8 @@ class Site:
       <h1>{e(self.title)}</h1>
       <p>Every character in the classical Chinese texts OpenCosmos translates,
       taken apart into the pieces it is built from, with what each piece means,
-      where the character appears, and how each translation renders it. No
-      Chinese required.</p>
-      <p class="texts">Now serving {names}.</p>
+      where the character appears, and how each translation renders it.</p>
+      <p class="texts">Serving {names}.</p>
     </div>
     <div class="counts">
       <div><span id="k-ch">—</span><div class="lab">characters</div></div>
