@@ -1,0 +1,15 @@
+{
+  "site": {
+    "title": "Open Classical Chinese Character Atlas",
+    "domain": null,
+    "project_base": "/chinese-atlas/"
+  },
+  "texts": [
+    {
+      "id": "tao-te-ching",
+      "repo": "opencosmos-ai/taoteching",
+      "export": "data/atlas-export.json",
+      "sibling": "../taoteching"
+    }
+  ]
+}

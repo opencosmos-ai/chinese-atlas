@@ -1,0 +1,429 @@
+/* The Open Classical Chinese Character Atlas — the reading room.
+ *
+ * Ported from the Tao Te Ching's original atlas and extended to any number of
+ * texts. Every character has its own address (BASE + 常 + /), so the grid is
+ * made of links and the URL always names what the card shows.
+ *
+ * Two kinds of page load this script:
+ *   <body data-page="atlas" [data-char="常"]>   the grid and the card
+ *   <body data-page="entry" data-chars="無為">   a glossary entry; the card only
+ */
+(async function () {
+const BASE = document.querySelector('meta[name="atlas-base"]').content;
+const DATA_URL = document.querySelector('meta[name="atlas-data"]').content;
+const PAGE = document.body.dataset.page;
+if (PAGE !== 'atlas' && PAGE !== 'entry') return;   // index pages need no data
+const D = await (await fetch(DATA_URL)).json();
+
+const TEXTS = D.texts, TX = Object.fromEntries(TEXTS.map(t => [t.id, t]));
+const CH = D.chars, G = D.glyphs, BUILT = D.built;
+const byChar = Object.fromEntries(CH.map(c => [c.c, c]));
+const el = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, m =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const charUrl = c => BASE + encodeURIComponent(c) + '/';
+const entryUrl = (tid, slug) => BASE + tid + '/glossary/' + encodeURIComponent(slug) + '/';
+const SITE = 'Open Classical Chinese Character Atlas';
+
+// ---------------------------------------------------------------- per-text view
+// A character carries one record per text it appears in (c.t[tid]). The grid
+// shows either one text or all of them; this folds the records into one row.
+let tf = 'all';
+function view(c){
+  const ids = (tf === 'all' ? TEXTS.map(t => t.id) : [tf]).filter(id => c.t[id]);
+  if (!ids.length) return null;
+  const rs = ids.map(id => c.t[id]);
+  return {
+    ids, n: rs.reduce((a, r) => a + r.n, 0),
+    cent: Math.max(...rs.map(r => r.cent || 0)),
+    lock: rs.some(r => r.lock), fw: rs.every(r => r.fw),
+    g: (rs.find(r => r.g) || {}).g || '', r: (rs.find(r => r.r) || {}).r || '',
+  };
+}
+
+// ---------------------------------------------------------------- heat colour
+// Each heat cell's number is black or white, whichever reads better on that
+// cell's own blend of vermilion over the sunk surface. Fixed colours cannot
+// reach 4.5:1 across the whole ramp; the better of the two always does.
+function rgb(v){
+  v = v.trim();
+  if (v.startsWith('#')) return [1,3,5].map(i => parseInt(v.slice(i, i+2), 16));
+  return v.split(',').map(Number);
+}
+function lum(c){
+  const f = x => { x /= 255; return x <= .03928 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4; };
+  return .2126 * f(c[0]) + .7152 * f(c[1]) + .0722 * f(c[2]);
+}
+function textOn(alpha){
+  const cs = getComputedStyle(document.documentElement);
+  const sem = rgb(cs.getPropertyValue('--sem-rgb')), base = rgb(cs.getPropertyValue('--sunk'));
+  const bg = sem.map((s, i) => s * alpha + base[i] * (1 - alpha));
+  const L = lum(bg);
+  return (1.05 / (L + .05)) >= ((L + .05) / .05) ? '#fff' : '#000';
+}
+
+// ---------------------------------------------------------------- the card
+let occLimit = 6, unitFilter = null, wOn = false;
+
+function partBtn(ch, role, link){
+  const g = G[ch] || [null, null];
+  const known = !!g[1];
+  const meaning = role === 'sem' ? (g[1] || 'not yet glossed')
+                                 : 'sound only — carries no meaning here';
+  const tag = link ? 'a' : 'button';
+  const attr = link ? `href="${BASE}?built=${encodeURIComponent(ch)}"`
+                    : `type="button" data-comp="${esc(ch)}"`;
+  return `<${tag} class="part ${role}" ${attr}
+      title="Show every character built from ${esc(ch)}" style="text-decoration:none">
+      <span class="pg">${esc(ch)}</span>
+      <span class="pt"><b>${esc(g[0] || '?')}</b>
+      <span${known || role === 'pho' ? '' : ' class="gap"'}>${esc(meaning)}</span></span>
+    </${tag}>`;
+}
+
+function entryLinks(c, only){
+  let h = '';
+  for (const t of TEXTS){
+    if (only && t.id !== only) continue;
+    const r = c.t[t.id]; if (!r) continue;
+    for (const slug of r.entries || []){
+      const e = (D.entries[t.id] || {})[slug]; if (!e) continue;
+      h += `<a class="ent" href="${entryUrl(t.id, slug)}">
+        <span class="lab">${esc(t.title)} · glossary${e.status === 'open' ? ' · open' : ''}</span>
+        <span class="t"><span class="zh">${esc(e.term)}</span> ${esc(e.pinyin)} — ${esc(e.render)}
+        <span class="go">→</span></span></a>`;
+    }
+  }
+  return h;
+}
+
+function heatSection(c, t){
+  const r = c.t[t.id], U = D.units[t.id] || {}, N = t.units;
+  const occ = D.where[t.id][c.c] || [];
+  const per = new Array(N + 1).fill(0);
+  for (const [k, n] of occ) per[+k.split('.')[0]] += n;
+  const peak = Math.max(1, ...per);
+  const unit = t.unit, Unit = unit[0].toUpperCase() + unit.slice(1);
+  // Scaled against this character's own peak, not the text's. The question the
+  // map answers is where *this* character concentrates; a global scale would
+  // flatten every term that is not the commonest into an even wash.
+  const shade = n => n === 0 ? 0 : 0.18 + 0.82 * (n / peak);
+  const W = t.witness;
+  let wChars = 0, allChars = 0, wUses = 0;
+  if (W) for (let n = 1; n <= N; n++){
+    const m = U[n] || [], size = m[4] || 0;
+    allChars += size; if (m[3]){ wChars += size; wUses += per[n]; }
+  }
+  const wShare = allChars ? Math.round(100 * wChars / allChars) : 0;
+  const useShare = r.n ? Math.round(100 * wUses / r.n) : 0;
+  const on = W && wOn;
+  const single = TEXTS.filter(x => c.t[x.id]).length === 1;
+
+  let h = `<section class="blk">
+    <span class="lab" style="display:flex;justify-content:space-between;
+      align-items:center;gap:10px">Where it appears${single ? '' : ' · ' + esc(t.title)}
+      ${W ? `<button class="wtog" type="button" aria-pressed="${on}"
+        title="${esc(W.name)}, ${esc(W.date)} — the oldest surviving copy of this text. A witness is a copy that testifies to what the text said at some point; it is not a source the text came from."
+        style="padding:3px 8px;font-size:10px">Oldest witness</button>` : ''}</span>
+    <p class="legend" style="margin:0 0 10px">${r.n}&times;
+      across ${r.chs.length} of ${N} ${unit}s${
+        peak > 1 ? `, most often in ${unit} ${per.indexOf(peak)} (${peak}&times;)` : ''}</p>
+    <div class="heat" style="grid-template-columns:repeat(${t.cols},1fr)">`;
+  for (let n = 1; n <= N; n++){
+    const k = per[n], gd = U[n] && U[n][3];
+    const faded = on && !gd;
+    // A unit outside the witness keeps a readable number: its fill is lightened
+    // rather than the whole cell, so the text still meets contrast.
+    const a = k ? shade(k) * (faded ? .35 : 1) : 0;
+    const title = `${Unit} ${n}${U[n] && U[n][2] ? ' — ' + U[n][2] : ''}` +
+      ` · ${k === 0 ? 'does not appear' : k + (k === 1 ? ' time' : ' times')}` +
+      (on ? (gd ? ` · in ${W.name}, ${W.date}` : ` · not in ${W.name}`) : '');
+    const cls = 'hc' + (k ? '' : ' void') + (on && gd ? ' gd' : '') + (faded ? ' faded' : '');
+    const pressed = unitFilter && unitFilter[0] === t.id && unitFilter[1] === n;
+    h += `<button class="${cls}" type="button" data-tid="${t.id}" data-u="${n}"
+      ${k ? '' : 'tabindex="-1" aria-disabled="true"'} aria-pressed="${!!pressed}"
+      style="background:${k ? `rgba(var(--sem-rgb),${a.toFixed(3)})` : 'var(--sunk)'};${
+        k ? `color:${textOn(a)};` : ''}"
+      title="${esc(title)}">${n}</button>`;
+  }
+  h += `</div>
+    <div class="hkey">
+      <span class="lab">none</span>
+      <span class="hramp">${[0, .25, .5, .75, 1].map(x =>
+        `<i style="background:${x ? `rgba(var(--sem-rgb),${(0.18 + 0.82 * x).toFixed(2)})`
+          : 'var(--sunk)'}"></i>`).join('')}</span>
+      <span class="lab">${peak}&times; in one ${unit}</span>
+    </div>`;
+  if (!on)
+    h += `<p class="legend" style="margin-top:8px">
+      All ${N} ${unit}s are shown, so the gaps count too. Deeper red means more
+      uses of ${esc(c.c)} there. Click a ${unit} to read only its lines.</p>`;
+  else
+    h += `<p class="legend" style="margin-top:8px">
+      Dashed ${unit}s are missing from <b>${esc(W.name)}</b> (${esc(W.date)}), the
+      oldest surviving copy of this text. It is a <i>witness</i>, not a source: it
+      testifies to what the text said, but the later text does not descend from
+      it. It carries ${W.carries} of the ${N} ${unit}s and ${wShare}% of the
+      text&rsquo;s characters.
+      <b>${wUses} of ${esc(c.c)}&rsquo;s ${r.n} uses &mdash; ${useShare}% &mdash;
+      fall inside it.</b>
+      ${r.n < 10
+        ? `Too few uses to read anything into that. With ${r.n}, a split this far
+           from ${wShare}% is ordinary chance.`
+        : useShare === 0
+        ? `Absent from the oldest witness entirely &mdash; across ${r.n} uses that
+           is unlikely to be chance, and worth asking whether ${esc(c.c)} belongs
+           to a later layer.`
+        : Math.abs(useShare - wShare) < 10
+        ? `Within range of the ${wShare}% an even spread would give, so this says
+           nothing either way.`
+        : useShare < wShare
+        ? `Below the ${wShare}% an even spread would give: it leans toward the
+           ${unit}s the oldest witness lacks.`
+        : `Above the ${wShare}% an even spread would give: it leans toward the
+           oldest stratum.`}
+      Weak evidence at best: the witness is a selection, not an earlier edition,
+      and absence from it is not proof of lateness.</p>`;
+  h += `</section>`;
+
+  const lines = D.lines[t.id];
+  const shown = unitFilter && unitFilter[0] === t.id
+    ? occ.filter(e => +e[0].split('.')[0] === unitFilter[1]) : occ;
+  h += `<section class="blk"><span class="lab">In the text${single ? '' : ' · ' + esc(t.title)}</span>`;
+  if (unitFilter && unitFilter[0] === t.id)
+    h += `<p class="legend" style="margin:0 0 9px">${Unit} ${unitFilter[1]} only —
+      <button class="allu" type="button" style="padding:2px 7px">show all
+      ${occ.length} lines</button></p>`;
+  h += `<div class="occ">`;
+  for (const [key, times] of shown.slice(0, occLimit)){
+    const L = lines[key]; if (!L) continue;
+    const [u, seq] = key.split('.');
+    const zh = esc(L[0]).split(c.c).join(`<mark>${esc(c.c)}</mark>`);
+    h += `<div class="oc">
+      <div class="ref">${esc(t.abbr)} ${u} · LINE ${seq}${
+        times > 1 ? `<span class="times">${times}× in this line</span>` : ''}</div>
+      <div class="zh">${zh}</div>
+      <div class="py2">${esc(L[1] || '')}</div>
+      <div class="en">${esc(L[2] || '—')}</div>
+      ${L[3] ? '' : '<div class="approx">line pairing approximate</div>'}
+    </div>`;
+  }
+  h += `</div>`;
+  if (shown.length > occLimit)
+    h += `<button class="more" type="button">Show more
+          (${shown.length - occLimit} more line${shown.length - occLimit === 1 ? '' : 's'})</button>`;
+  h += `</section>`;
+  return h;
+}
+
+function cardHtml(chr, compact){
+  const c = byChar[chr];
+  if (!c) return '';
+  const present = TEXTS.filter(t => c.t[t.id] && (tf === 'all' || tf === t.id || compact));
+  const tags = [];
+  if (c.kind) tags.push(`<span class="tag">${esc(c.kind.replace(/-/g, ' '))}</span>`);
+  if (c.rad) tags.push(`<span class="tag">filed under ${esc(c.rad)}</span>`);
+
+  let meta = `<div class="pin">${esc(c.p || '')}</div>`;
+  if (present.length === 1){
+    const r = c.t[present[0].id];
+    const t2 = [];
+    if (r.lock) t2.push('<span class="tag lock">settled rendering</span>');
+    if (r.tier) t2.push(`<span class="tag">${esc(r.tier)}</span>`);
+    meta += `<div class="gloss">${esc(r.g || 'not yet glossed')}</div>
+      ${r.r && r.r !== r.g ? `<div class="render">rendered “${esc(r.r)}”</div>` : ''}
+      <div class="tags">${t2.concat(tags).join('')}</div>`;
+  } else {
+    for (const t of present){
+      const r = c.t[t.id];
+      meta += `<div class="by"><span class="lab">${esc(t.title)}</span>
+        <div class="gloss">${esc(r.g || 'not yet glossed')}</div>
+        ${r.lock ? '<div class="tags"><span class="tag lock">settled rendering</span></div>' : ''}</div>`;
+    }
+    meta += `<div class="tags">${tags.join('')}</div>`;
+  }
+  let h = `<div class="hero"><div class="big">${esc(c.c)}</div>
+    <div class="meta">${meta}</div></div>`;
+
+  if (c.sem.length || c.pho.length){
+    h += `<section class="blk"><span class="lab">Built from</span>
+      <div class="parts">
+        ${c.sem.map(x => partBtn(x, 'sem', compact)).join('')}
+        ${c.pho.map(x => partBtn(x, 'pho', compact)).join('')}
+      </div>`;
+    if (c.pho.length && c.sem.length)
+      h += `<p class="legend"><em>Vermilion</em> parts carry meaning.
+            <strong>Slate</strong> parts were borrowed for sound alone.</p>`;
+    else if (c.pho.length)
+      h += `<p class="legend"><strong>Slate</strong> parts were borrowed for
+            sound alone and mean nothing here.</p>`;
+    h += `</section>`;
+  } else if (c.kind === 'pictograph'){
+    h += `<section class="blk"><span class="lab">Built from</span>
+      <p class="legend">Nothing — this one is a picture, not an assembly.</p>
+      </section>`;
+  }
+
+  if (c.def){
+    h += `<section class="blk"><span class="lab">說文解字 · c. 100 CE</span>
+      <div class="swz">${esc(c.def)}</div>`;
+    // The English is hand-made, from a glossary entry; where no entry has
+    // translated the line yet, the Chinese stands alone.
+    if (c.defen) h += `<p class="swen">${esc(c.defen)}</p>`;
+    const facts = (c.hw && c.hw !== c.c ? `Filed under the older graph ${esc(c.hw)}. ` : '') +
+      (c.fq ? `Middle Chinese spelling ${esc(c.fq)}.` : '');
+    if (facts) h += `<p class="note">${facts.trim()}</p>`;
+    h += `</section>`;
+  }
+
+  if (compact){
+    h += `<a class="open" href="${charUrl(c.c)}">Open ${esc(c.c)} in the atlas →</a>`;
+    return h;
+  }
+
+  const ents = entryLinks(c);
+  if (ents) h += `<section class="blk"><span class="lab">Glossary</span>${ents}</section>`;
+  for (const t of present) h += heatSection(c, t);
+  return h;
+}
+
+function wireCard(card, chr, rerender){
+  card.querySelectorAll('[data-comp]').forEach(b => b.onclick = () => {
+    filter.comp = b.dataset.comp; filter.q = ''; el('q').value = '';
+    filter.real = false; el('f-real').setAttribute('aria-pressed', 'false');
+    draw(); window.scrollTo({top: 0, behavior: 'smooth'});
+  });
+  card.querySelectorAll('.hc').forEach(b => b.onclick = () => {
+    const tid = b.dataset.tid, n = +b.dataset.u;
+    if (b.classList.contains('void')) return;
+    unitFilter = unitFilter && unitFilter[0] === tid && unitFilter[1] === n ? null : [tid, n];
+    occLimit = 6; rerender();
+  });
+  card.querySelectorAll('.wtog').forEach(b => b.onclick = () => { wOn = !wOn; rerender(); });
+  card.querySelectorAll('.allu').forEach(b => b.onclick = () => {
+    unitFilter = null; occLimit = 6; rerender(); });
+  card.querySelectorAll('.more').forEach(b => b.onclick = () => { occLimit += 12; rerender(); });
+}
+
+// ---------------------------------------------------------------- entry pages
+if (PAGE === 'entry'){
+  const chars = [...document.body.dataset.chars].filter(c => byChar[c]);
+  const card = el('card'), chips = el('chips');
+  let cur = chars[0];
+  const render = () => {
+    card.innerHTML = cardHtml(cur, true);
+    if (chips && chars.length > 1){
+      chips.innerHTML = chars.map(c => `<button type="button" aria-pressed="${c === cur}"
+        data-c="${esc(c)}">${esc(c)}</button>`).join('');
+      chips.querySelectorAll('button').forEach(b => b.onclick = () => { cur = b.dataset.c; render(); });
+    }
+  };
+  if (cur) render();
+  return;
+}
+
+// ---------------------------------------------------------------- the atlas
+const grid = el('grid'), card = el('card'), status = el('status');
+let sel = null, sort = 'freq';
+const filter = {q: '', lock: false, real: true, comp: null};
+
+el('k-ch').textContent = CH.length.toLocaleString();
+el('k-oc').textContent = CH.reduce((a, c) =>
+  a + Object.values(c.t).reduce((b, r) => b + r.n, 0), 0).toLocaleString();
+el('k-pt').textContent = Object.keys(BUILT).length.toLocaleString();
+
+function visible(){
+  let out = CH.map(c => [c, view(c)]).filter(([, v]) => v);
+  if (filter.comp){
+    const set = new Set((BUILT[filter.comp] || []).map(x => x[0]));
+    out = out.filter(([c]) => set.has(c.c));
+  }
+  if (filter.lock) out = out.filter(([, v]) => v.lock);
+  if (filter.real) out = out.filter(([, v]) => !v.fw);
+  const q = filter.q.trim().toLowerCase();
+  if (q) out = out.filter(([c, v]) =>
+    c.c.includes(q) || (c.p || '').toLowerCase().includes(q) ||
+    v.g.toLowerCase().includes(q) || v.r.toLowerCase().includes(q));
+  out.sort(sort === 'cent' ? (a, b) => b[1].cent - a[1].cent : (a, b) => b[1].n - a[1].n);
+  return out;
+}
+
+function draw(){
+  const list = visible();
+  grid.innerHTML = '';
+  if (!list.length)
+    grid.innerHTML = '<p class="empty" style="grid-column:1/-1">' +
+      'Nothing matches. Try a different word, or clear the filter.</p>';
+  const frag = document.createDocumentFragment();
+  for (const [c, v] of list){
+    const a = document.createElement('a');
+    a.className = 'cell' + (v.lock ? ' locked' : '');
+    a.href = charUrl(c.c);
+    a.setAttribute('aria-current', sel === c.c ? 'true' : 'false');
+    a.title = `${c.c} ${c.p || ''} — ${v.g || 'not yet glossed'} · ${v.n}×`;
+    a.innerHTML = `<span class="gl">${esc(c.c)}</span><span class="py">${esc(c.p || '')}</span>`;
+    a.onclick = e => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+      e.preventDefault(); go(c.c, true);
+    };
+    frag.appendChild(a);
+  }
+  grid.appendChild(frag);
+  const total = CH.filter(c => view(c)).length;
+  let s = `${list.length} of ${total} characters`;
+  if (filter.comp){
+    const g = G[filter.comp] || [];
+    s += ` built from ${filter.comp}` + (g[1] ? ` (${g[1]})` : '');
+  }
+  status.textContent = s;
+  el('clear').hidden = !filter.comp;
+}
+
+function show(chr){
+  card.innerHTML = cardHtml(chr, false);
+  wireCard(card, chr, () => show(chr));
+}
+
+function go(chr, push){
+  if (!byChar[chr]) return;
+  sel = chr; occLimit = 6; unitFilter = null;
+  draw(); show(chr);
+  const c = byChar[chr], v = view(c) || {};
+  document.title = `${chr} ${c.p || ''} — ${v.g || 'not yet glossed'} · ${SITE}`;
+  if (push) history.pushState({c: chr}, '', charUrl(chr));
+  if (window.innerWidth <= 980 && push) card.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+window.addEventListener('popstate', e => go((e.state && e.state.c) || START, false));
+
+el('q').oninput = e => { filter.q = e.target.value; draw(); };
+function toggle(id, key){
+  el(id).onclick = () => {
+    filter[key] = !filter[key];
+    el(id).setAttribute('aria-pressed', String(filter[key])); draw();
+  };
+}
+toggle('f-lock', 'lock'); toggle('f-real', 'real');
+el('s-freq').onclick = () => { sort = 'freq';
+  el('s-freq').setAttribute('aria-pressed', 'true');
+  el('s-cent').setAttribute('aria-pressed', 'false'); draw(); };
+el('s-cent').onclick = () => { sort = 'cent';
+  el('s-cent').setAttribute('aria-pressed', 'true');
+  el('s-freq').setAttribute('aria-pressed', 'false'); draw(); };
+el('clear').onclick = () => { filter.comp = null; draw(); };
+document.querySelectorAll('[data-text]').forEach(b => b.onclick = () => {
+  tf = b.dataset.text;
+  document.querySelectorAll('[data-text]').forEach(x =>
+    x.setAttribute('aria-pressed', String(x === b)));
+  draw(); if (sel) show(sel);
+});
+
+// ?built=巾 arrives from a component tile on an entry page.
+const built = new URLSearchParams(location.search).get('built');
+if (built && BUILT[built]){
+  filter.comp = built; filter.real = false;
+  el('f-real').setAttribute('aria-pressed', 'false');
+}
+const START = document.body.dataset.char || '道';
+history.replaceState({c: START}, '', location.href);
+go(START, false);
+})();

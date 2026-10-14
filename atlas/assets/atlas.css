@@ -1,0 +1,337 @@
+/* The Open Classical Chinese Character Atlas.
+ *
+ * Ported from the Tao Te Ching's original atlas (taoteching/tools/build_explorer.py)
+ * rule for rule. Three deliberate changes, nothing else:
+ *   1. Contrast. Every text colour reaches 4.5:1 on the surface it sits on
+ *      (WCAG AA). Light --ink-3, --sem, --pho and --lock are one step darker;
+ *      text that sits on --sunk uses --ink-2.
+ *   2. Size floors. Body text is never under 12px; labels never under 10px.
+ *   3. The Song face is guaranteed. Songti stays first, so Apple devices look as
+ *      they always have; everyone else gets Noto Serif TC instead of whatever
+ *      their system falls back to.
+ */
+/* The rare characters — CJK Extension A, B and beyond: 說文's older forms and
+   the components inside its analyses. Neither Songti nor Noto Serif TC has them,
+   so they come from HanaMin (花園明朝), a Ming face, cut to exactly the
+   characters this site shows (atlas/fonts.py). unicode-range keeps it from
+   touching anything the faces before it can set. */
+@font-face{font-family:"Atlas Rare Han";font-display:swap;
+  src:url("fonts/rare-a.woff2") format("woff2");
+  unicode-range:U+2E80-2FDF,U+3400-4DBF}
+@font-face{font-family:"Atlas Rare Han";font-display:swap;
+  src:url("fonts/rare-b.woff2") format("woff2");
+  unicode-range:U+20000-3134F}
+:root{
+  --paper:#E9E9E4; --card:#F4F4F0; --sunk:#DEDED8;
+  --ink:#16171A; --ink-2:#4A4D53; --ink-3:#656970;
+  --rule:#CFCFC8;
+  --sem:#AF392D;         /* vermilion — the brush a scholar annotates with */
+  --sem-rgb:175,57,45;   /* same colour, mixable — the heat map scales its alpha */
+  --sem-soft:#F0DCD8;
+  --pho:#546473;         /* slate — quieter, because sound carries no meaning */
+  --pho-soft:#DCE2E7;
+  --lock:#826517;
+  --shadow:0 1px 2px rgba(20,20,24,.06),0 8px 24px -12px rgba(20,20,24,.18);
+  --serif:"Spectral",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --han:"Songti SC","Songti TC","Song Ti","Noto Serif TC","Atlas Rare Han",
+        "Noto Serif CJK TC","Noto Serif CJK SC","Hiragino Mincho ProN","Yu Mincho",
+        "SimSun",serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#141518; --card:#1C1E22; --sunk:#0F1013;
+    --ink:#E8E6E1; --ink-2:#B0B2B7; --ink-3:#83868C;
+    --rule:#2B2E33;
+    --sem:#E07E6C; --sem-rgb:224,126,108; --sem-soft:#3A2724;
+    --pho:#93A9BC; --pho-soft:#232B33;
+    --lock:#D6B25C;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#141518; --card:#1C1E22; --sunk:#0F1013;
+  --ink:#E8E6E1; --ink-2:#B0B2B7; --ink-3:#83868C;
+  --rule:#2B2E33;
+  --sem:#E07E6C; --sem-rgb:224,126,108; --sem-soft:#3A2724;
+  --pho:#93A9BC; --pho-soft:#232B33;
+  --lock:#D6B25C;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--serif);font-size:16px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{text-wrap:balance;margin:0;font-weight:500;letter-spacing:-.012em}
+a{color:inherit}
+.zh{font-family:var(--han)}
+.lab{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);
+}
+.wrap{max-width:1400px;margin:0 auto;padding:0 24px 72px}
+@media(max-width:600px){.wrap{padding:0 16px 56px}}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);
+    white-space:nowrap}
+
+/* ---------- site bar ---------- */
+.bar{display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;
+     padding:14px 0 12px;border-bottom:1px solid var(--rule)}
+.bar .home{font-weight:600;text-decoration:none;font-size:15px}
+.bar .home:hover{color:var(--sem)}
+.bar nav{display:flex;gap:16px;flex-wrap:wrap;margin-left:auto}
+.bar nav a{font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-2);text-decoration:none}
+.bar nav a:hover,.bar nav a[aria-current="page"]{color:var(--ink);
+  text-decoration:underline;text-underline-offset:4px}
+
+/* ---------- masthead ---------- */
+header.top{border-bottom:1px solid var(--rule);margin-bottom:22px}
+.mast{display:flex;gap:24px;align-items:flex-end;flex-wrap:wrap;
+      padding:30px 0 18px}
+.mast h1{font-size:clamp(28px,3.4vw,42px);line-height:1.06;font-weight:600}
+.mast h1 .zh{font-weight:500}
+.mast p{margin:8px 0 0;color:var(--ink-2);max-width:62ch;font-size:15px}
+.mast .texts{margin-top:10px;font-size:14px;color:var(--ink-2)}
+.mast .texts a{text-decoration-color:var(--rule);text-underline-offset:3px}
+.mast .texts a:hover{color:var(--sem)}
+.counts{margin-left:auto;display:flex;gap:22px;text-align:right}
+.counts div span{display:block;font-family:var(--mono);font-size:19px;
+                 color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* ---------- controls ---------- */
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+          padding:0 0 18px}
+input[type=search]{
+  font-family:var(--serif);font-size:15px;color:var(--ink);
+  background:var(--card);border:1px solid var(--rule);border-radius:2px;
+  padding:8px 12px;min-width:260px;
+}
+input[type=search]::placeholder{color:var(--ink-3);opacity:1}
+@media(max-width:600px){input[type=search]{min-width:0;flex:1 1 100%}}
+input[type=search]:focus-visible,button:focus-visible,a:focus-visible,
+.cell:focus-visible,.part:focus-visible{outline:2px solid var(--sem);
+  outline-offset:2px}
+button{
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-2);cursor:pointer;
+  background:transparent;border:1px solid var(--rule);border-radius:2px;
+  padding:7px 11px;
+}
+/* Heat cells are buttons too, and these two rules would otherwise repaint their
+   fill and erase the witness outline. Excluded explicitly rather than by
+   scoping, so .more and the inline controls keep the shared button look. */
+button:hover:not(.hc){color:var(--ink);border-color:var(--ink-3)}
+button[aria-pressed="true"]:not(.hc){background:var(--ink);color:var(--paper);
+  border-color:var(--ink)}
+.spacer{flex:1}
+
+/* ---------- two-column reading room ---------- */
+.room{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:26px;
+      align-items:start}
+@media(max-width:980px){.room{grid-template-columns:1fr}}
+
+/* ---------- the specimen index ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));
+      gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.cell{
+  background:var(--card);border:0;padding:9px 4px 7px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  position:relative;transition:background .12s;text-decoration:none;
+}
+.cell:hover{background:var(--sunk)}
+.cell:hover .py{color:var(--ink-2)}
+.cell[aria-current="true"]{background:var(--ink)}
+.cell[aria-current="true"] .gl,
+.cell[aria-current="true"] .py{color:var(--paper)}
+.gl{font-family:var(--han);font-size:25px;line-height:1.15;color:var(--ink)}
+.py{font-family:var(--mono);font-size:10px;color:var(--ink-3);
+    text-transform:uppercase;letter-spacing:.06em;
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cell.locked::after{content:"";position:absolute;top:5px;right:5px;
+  width:4px;height:4px;border-radius:50%;background:var(--lock)}
+.empty{padding:40px 8px;color:var(--ink-3);font-style:italic}
+
+/* ---------- the anatomy card ---------- */
+.card{background:var(--card);border:1px solid var(--rule);box-shadow:var(--shadow);
+      position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}
+@media(max-width:980px){.card{position:static;max-height:none}}
+.card-in{padding:22px}
+@media(max-width:600px){.card-in{padding:18px 16px}}
+.hero{display:flex;gap:18px;align-items:flex-start;
+      border-bottom:1px solid var(--rule);padding-bottom:16px;margin-bottom:16px}
+.hero .big{font-family:var(--han);font-size:76px;line-height:.92;color:var(--ink)}
+.hero .meta{min-width:0}
+.hero .meta .pin{font-family:var(--mono);font-size:14px;color:var(--sem)}
+.hero .meta .gloss{font-size:19px;line-height:1.25;margin-top:2px}
+.hero .meta .render{color:var(--ink-2);font-size:14px;margin-top:5px;
+                    font-style:italic}
+.hero .meta .by{margin-top:8px}
+.hero .meta .by + .by{margin-top:10px;padding-top:9px;border-top:1px solid var(--rule)}
+.hero .meta .by .lab{display:block;margin-bottom:1px}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.tag{font-family:var(--mono);font-size:10px;letter-spacing:.07em;
+  text-transform:uppercase;padding:2px 6px;border:1px solid var(--rule);
+  border-radius:2px;color:var(--ink-3)}
+.tag.lock{color:var(--lock);border-color:var(--lock)}
+
+section.blk{margin-top:20px}
+section.blk > .lab{display:block;margin-bottom:8px;
+  border-bottom:1px solid var(--rule);padding-bottom:5px}
+
+/* parts */
+.parts{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.part{
+  display:flex;gap:9px;align-items:center;cursor:pointer;text-align:left;
+  border:1px solid var(--rule);border-radius:2px;padding:7px 10px 7px 8px;
+  background:transparent;flex:1 1 168px;min-width:0;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-2);text-decoration:none;
+}
+.part:hover{border-color:var(--ink-3)}
+.part .pg{font-family:var(--han);font-size:27px;line-height:1;flex:none}
+.part .pt{min-width:0}
+.part .pt b{display:block;font-family:var(--mono);font-size:10.5px;
+  font-weight:500;letter-spacing:.02em}
+.part .pt span{display:block;font-size:13px;line-height:1.3;color:var(--ink-2);
+  overflow:hidden;text-overflow:ellipsis}
+.part .pt span.gap{font-style:italic}
+.part.sem{background:var(--sem-soft);border-color:transparent}
+.part.sem .pg,.part.sem .pt b{color:var(--sem)}
+.part.pho{background:var(--pho-soft);border-color:transparent}
+.part.pho .pg,.part.pho .pt b{color:var(--pho)}
+.legend{font-size:13px;color:var(--ink-2);margin:9px 0 0;line-height:1.45}
+.legend em{color:var(--sem);font-style:normal}
+.legend strong{color:var(--pho);font-weight:400}
+
+.swz{font-family:var(--han);font-size:16px;line-height:1.7;color:var(--ink);
+     background:var(--sunk);padding:11px 13px;border-left:2px solid var(--sem)}
+.swen{font-size:14px;color:var(--ink-2);margin:8px 0 0;line-height:1.5;
+      font-style:italic}
+.note{font-size:13px;color:var(--ink-3);margin-top:7px;line-height:1.45}
+
+/* Every chapter (or hexagram) is shown, so the map is always complete. Showing
+   only the units a character reaches hides the more telling half — where it
+   does not go. Absence has a shape, and it is only visible against a constant
+   frame. */
+.heat{display:grid;gap:3px;margin-top:2px}
+.hc{
+  aspect-ratio:1;border:1px solid transparent;border-radius:2px;padding:0;
+  background:var(--sunk);cursor:pointer;
+  font-family:var(--mono);font-size:10px;font-variant-numeric:tabular-nums;
+  color:var(--ink-2);display:flex;align-items:center;justify-content:center;
+  transition:transform .1s;
+}
+.hc:hover{transform:scale(1.14)}
+/* A unit the character never reaches is not a control. It stays a button so its
+   tooltip still names the unit, but nothing about it should promise a click
+   that does nothing. */
+.hc.void{cursor:default}
+.hc.void:hover{transform:none}
+.hc.gd{border-color:var(--pho)}
+.hc.faded{border-style:dashed;border-color:var(--rule)}
+.hc[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:1px}
+.hc:focus-visible{outline:2px solid var(--sem);outline-offset:1px}
+.hkey{display:flex;align-items:center;gap:7px;margin-top:10px;flex-wrap:wrap}
+.hramp{display:flex;gap:2px}
+.hramp i{width:15px;height:11px;border-radius:1px;display:block}
+.hkey .lab{white-space:nowrap}
+
+.occ{display:flex;flex-direction:column;gap:12px}
+.oc{border-top:1px solid var(--rule);padding-top:10px}
+.oc:first-child{border-top:0;padding-top:0}
+.oc .ref{font-family:var(--mono);font-size:10px;color:var(--ink-3);
+  letter-spacing:.05em;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.oc .times{color:var(--sem);letter-spacing:.03em}
+.oc .zh{font-family:var(--han);font-size:17px;line-height:1.6;margin-top:3px}
+.oc .zh mark{background:var(--sem-soft);color:var(--sem);
+  border-radius:2px;padding:0 1px}
+.oc .py2{font-family:var(--mono);font-size:12px;color:var(--ink-3);
+  margin-top:2px;line-height:1.45}
+.oc .en{font-size:14.5px;color:var(--ink-2);margin-top:5px;line-height:1.45}
+.oc .approx{font-family:var(--mono);font-size:10px;color:var(--ink-3);
+  letter-spacing:.05em}
+.more{margin-top:10px}
+
+/* entry links on the card */
+.ent{display:block;text-decoration:none;border:1px solid var(--rule);
+  border-radius:2px;padding:9px 11px;margin-top:8px}
+.ent:hover{border-color:var(--ink-3)}
+.ent .lab{display:block}
+.ent .t{font-size:15px;margin-top:2px}
+.ent .t .zh{font-size:17px}
+.ent .go{color:var(--sem)}
+
+footer{border-top:1px solid var(--rule);margin-top:40px;padding-top:18px;
+  color:var(--ink-3);font-size:13px;line-height:1.6;max-width:78ch}
+footer b{color:var(--ink-2);font-weight:500}
+footer a{color:var(--ink-2);text-underline-offset:3px}
+
+/* ---------- entry pages: a reading room for one argument ---------- */
+.entry-room{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,400px);
+  gap:40px;align-items:start;margin-top:26px}
+@media(max-width:980px){
+  .entry-room{grid-template-columns:1fr;gap:24px}
+  .entry-room > aside{order:-1}
+}
+.crumbs{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:14px}
+.crumbs a{color:var(--ink-2);text-decoration:none}
+.crumbs a:hover{color:var(--ink);text-decoration:underline}
+.prose{max-width:66ch;font-size:17px;line-height:1.65;color:var(--ink)}
+.prose .zh{font-size:1.05em}
+.prose a.zc{text-decoration:none;color:inherit}
+.prose a.zc:hover{color:var(--sem);text-decoration:underline;
+  text-underline-offset:3px}
+.prose h1,.prose h2{font-size:clamp(24px,2.6vw,30px);line-height:1.15;margin:0 0 6px;
+  font-weight:600}
+.prose h1 .zh,.prose h2 .zh{font-weight:500}
+.prose h3{font-size:19px;line-height:1.3;margin:34px 0 8px;font-weight:600}
+.prose h4{font-size:17px;margin:24px 0 6px;font-weight:600}
+.prose p{margin:0 0 14px}
+.prose ul,.prose ol{margin:0 0 14px;padding-left:22px}
+.prose li{margin:0 0 6px}
+.prose blockquote{margin:16px 0;padding:10px 16px;background:var(--sunk);
+  border-left:2px solid var(--sem)}
+.prose blockquote p{margin:4px 0}
+.prose blockquote .zh{font-size:1.12em}
+.prose code{font-family:var(--mono);font-size:.82em;background:var(--sunk);
+  padding:1px 4px;border-radius:2px}
+.prose a.path{text-decoration:none}
+.prose a.path:hover code{color:var(--sem)}
+.prose hr{border:0;border-top:1px solid var(--rule);margin:26px 0}
+.prose strong{font-weight:600}
+.tbl{overflow-x:auto;margin:16px 0}
+.prose table{border-collapse:collapse;font-size:15px;line-height:1.45;
+  min-width:100%}
+.prose th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-3);font-weight:500;text-align:left;
+  border-bottom:1px solid var(--ink-3);padding:6px 10px 6px 0;vertical-align:bottom}
+.prose td{border-bottom:1px solid var(--rule);padding:8px 10px 8px 0;
+  vertical-align:top}
+.source{margin-top:34px;padding-top:14px;border-top:1px solid var(--rule);
+  font-size:13px;color:var(--ink-3)}
+.source a{color:var(--ink-2)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chips button{font-family:var(--han);font-size:20px;text-transform:none;
+  letter-spacing:0;padding:3px 10px;color:var(--ink)}
+.open{display:inline-block;margin-top:16px;font-family:var(--mono);font-size:11px;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--sem);
+  text-decoration:none}
+.open:hover{text-decoration:underline;text-underline-offset:4px}
+
+/* ---------- glossary index ---------- */
+.gx{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:22px}
+.gx a{background:var(--card);padding:16px 16px 14px;text-decoration:none;
+  display:flex;gap:14px;align-items:flex-start}
+.gx a:hover{background:var(--sunk)}
+.gx .term{font-family:var(--han);font-size:34px;line-height:1;flex:none}
+.gx .py{font-size:11px;color:var(--sem);white-space:normal}
+.gx a:hover .py{color:var(--sem)}
+.gx .r{font-size:15px;line-height:1.3;margin-top:3px}
+.gx .tags{margin-top:7px}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
