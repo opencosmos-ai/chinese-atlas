@@ -86,23 +86,33 @@ function partBtn(ch, role, link){
     </${tag}>`;
 }
 
-function entryLinks(c, only){
+// The way into the argument. Each text with an entry for this character gets
+// one prominent button, directly under the character; an entry the character
+// only takes part in (無 inside 無為) is a quieter link beneath it.
+function glossaryButtons(c, texts){
   let h = '';
-  for (const t of TEXTS){
-    if (only && t.id !== only) continue;
-    const r = c.t[t.id]; if (!r) continue;
-    for (const slug of r.entries || []){
-      const e = (D.entries[t.id] || {})[slug]; if (!e) continue;
-      h += `<a class="ent" href="${entryUrl(t.id, slug)}">
-        <span class="lab">${only ? 'glossary entry' : esc(t.title) + ' · glossary'}${e.status === 'open' ? ' · open' : ''}</span>
-        <span class="t"><span class="zh">${esc(e.term)}</span> ${esc(e.pinyin)} — ${esc(e.render)}
-        <span class="go">→</span></span></a>`;
-    }
+  const many = texts.filter(t => (c.t[t.id].entries || []).length).length > 1;
+  for (const t of texts){
+    const slugs = c.t[t.id].entries || [];
+    if (!slugs.length) continue;
+    const E = D.entries[t.id] || {};
+    const main = slugs.find(s => E[s] && E[s].term === c.c) || slugs[0];
+    const e = E[main];
+    h += `<a class="gbtn" href="${entryUrl(t.id, main)}">
+      <span><span class="k">${many ? esc(t.title) + ' · ' : ''}Read the glossary entry${
+        e.status === 'open' ? ' · open' : ''}</span>
+      <span class="t"><span class="zh">${esc(e.term)}</span> ${esc(e.pinyin)} — ${esc(e.render)}</span></span>
+      <span class="arrow" aria-hidden="true">→</span></a>`;
+    const rest = slugs.filter(s => s !== main && E[s]);
+    if (rest.length)
+      h += `<p class="also">Also in ${rest.map(s => `<a href="${entryUrl(t.id, s)}"><span class="zh">${
+        esc(E[s].term)}</span> ${esc(E[s].pinyin)}</a>`).join(', ')}</p>`;
   }
-  return h;
+  return h ? `<div class="gwrap">${h}</div>` : '';
 }
 
-function heatSection(c, t){
+function heatSection(c, t, mode){
+  const full = mode !== 'summary';
   const r = c.t[t.id], U = D.units[t.id] || {}, N = t.units;
   const occ = D.where[t.id][c.c] || [];
   const per = new Array(N + 1).fill(0);
@@ -121,14 +131,14 @@ function heatSection(c, t){
   }
   const wShare = allChars ? Math.round(100 * wChars / allChars) : 0;
   const useShare = r.n ? Math.round(100 * wUses / r.n) : 0;
-  const on = W && wOn;
+  const on = full && W && wOn;
 
-  let h = `<section class="blk">
+  let h = `<section class="blk">${full ? `
     <span class="lab" style="display:flex;justify-content:space-between;
       align-items:center;gap:10px">Where it appears
       ${W ? `<button class="wtog" type="button" aria-pressed="${on}"
         title="${esc(W.name)}, ${esc(W.date)} — the oldest surviving copy of this text. A witness is a copy that testifies to what the text said at some point; it is not a source the text came from."
-        style="padding:3px 8px;font-size:10px">Oldest witness</button>` : ''}</span>
+        style="padding:3px 8px;font-size:10px">Oldest witness</button>` : ''}</span>` : ''}
     <p class="legend" style="margin:0 0 10px">${r.n}&times;
       across ${r.chs.length} of ${N} ${unit}s${
         peak > 1 ? `, most often in ${unit} ${per.indexOf(peak)} (${peak}&times;)` : ''}</p>
@@ -158,6 +168,11 @@ function heatSection(c, t){
           : 'var(--sunk)'}"></i>`).join('')}</span>
       <span class="lab">${peak}&times; in one ${unit}</span>
     </div>`;
+  if (!full){
+    h += `</section><button class="txgo" type="button" data-go="${t.id}">
+      Read its ${occ.length} line${occ.length === 1 ? '' : 's'} in the ${esc(t.title)} →</button>`;
+    return h;
+  }
   if (!on)
     h += `<p class="legend" style="margin-top:8px">
       All ${N} ${unit}s are shown, so the gaps count too. Deeper red means more
@@ -247,6 +262,7 @@ function cardHtml(chr, compact){
   if (tags.length) meta += `<div class="tags shared">${tags.join('')}</div>`;
   let h = `<div class="hero"><div class="big">${esc(c.c)}</div>
     <div class="meta">${meta}</div></div>`;
+  if (!compact) h += glossaryButtons(c, present);
 
   if (c.sem.length || c.pho.length){
     h += `<section class="blk"><span class="lab">Built from</span>
@@ -284,12 +300,19 @@ function cardHtml(chr, compact){
     return h;
   }
 
-  for (const t of present){
-    h += `<div class="tx"><div class="txhead">${esc(t.title)}
-      <span class="zh">${esc(t.title_zh)}</span></div>`;
-    const ents = entryLinks(c, t.id);
-    if (ents) h += `<section class="blk">${ents}</section>`;
-    h += heatSection(c, t) + `</div>`;
+  // All texts: a comparison. Each text the character appears in gets a short
+  // summary (its map, and the way into its own view), and none of them takes
+  // over the card. One text's tab: that text's full map and its lines.
+  if (tf === 'all'){
+    if (present.length){
+      h += `<div class="txs"><span class="lab txs-lab">In the texts</span>`;
+      for (const t of present)
+        h += `<div class="tx"><div class="txhead">${esc(t.title)}
+          <span class="zh">${esc(t.title_zh)}</span></div>${heatSection(c, t, 'summary')}</div>`;
+      h += `</div>`;
+    }
+  } else {
+    for (const t of present) h += heatSection(c, t, 'full');
   }
   return h;
 }
@@ -303,8 +326,15 @@ function wireCard(card, chr, rerender){
   card.querySelectorAll('.hc').forEach(b => b.onclick = () => {
     const tid = b.dataset.tid, n = +b.dataset.u;
     if (b.classList.contains('void')) return;
+    if (tf === 'all'){                   // a summary map opens that text's view
+      setTab(tid, true); unitFilter = [tid, n]; occLimit = 6; show(sel); return;
+    }
     unitFilter = unitFilter && unitFilter[0] === tid && unitFilter[1] === n ? null : [tid, n];
     occLimit = 6; rerender();
+  });
+  card.querySelectorAll('[data-go]').forEach(b => b.onclick = () => {
+    setTab(b.dataset.go, true);
+    card.scrollTop = 0;
   });
   card.querySelectorAll('.wtog').forEach(b => b.onclick = () => { wOn = !wOn; rerender(); });
   card.querySelectorAll('.allu').forEach(b => b.onclick = () => {
