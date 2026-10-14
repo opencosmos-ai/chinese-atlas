@@ -249,10 +249,12 @@ section.blk > .lab{display:block;margin-bottom:8px;
 
 /* parts */
 .parts{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.pcol{flex:1 1 168px;min-width:0;display:flex;flex-direction:column}
+.pcap{margin:6px 0 0;font-size:13px;line-height:1.35;color:var(--ink-2)}
 .part{
   display:flex;gap:9px;align-items:center;cursor:pointer;text-align:left;
   border:1px solid var(--rule);border-radius:2px;padding:7px 10px 7px 8px;
-  background:transparent;flex:1 1 168px;min-width:0;
+  background:transparent;flex:1 1 auto;min-width:0;
   font-family:var(--mono);font-size:11px;letter-spacing:.06em;
   text-transform:uppercase;color:var(--ink-2);text-decoration:none;
 }

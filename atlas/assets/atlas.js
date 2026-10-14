@@ -271,15 +271,11 @@ function cardHtml(chr, compact){
   if (c.sem.length || c.pho.length){
     h += `<section class="blk"><span class="lab">Built from</span>
       <div class="parts">
-        ${c.sem.map(x => partBtn(x, 'sem', compact)).join('')}
-        ${c.pho.map(x => partBtn(x, 'pho', compact)).join('')}
+        ${c.sem.map(x => `<div class="pcol">${partBtn(x, 'sem', compact)}
+          <p class="pcap">Carries meaning</p></div>`).join('')}
+        ${c.pho.map(x => `<div class="pcol">${partBtn(x, 'pho', compact)}
+          <p class="pcap">Borrowed for its sound alone</p></div>`).join('')}
       </div>`;
-    if (c.pho.length && c.sem.length)
-      h += `<p class="legend"><em>Vermilion</em> parts carry meaning.
-            <strong>Slate</strong> parts were borrowed for sound alone.</p>`;
-    else if (c.pho.length)
-      h += `<p class="legend"><strong>Slate</strong> parts were borrowed for
-            sound alone and mean nothing here.</p>`;
     if (!compact && compSel){
       const n = (BUILT[compSel] || []).filter(x => byChar[x[0]] && view(byChar[x[0]])).length;
       h += `<p class="legend resetrow">The grid shows only the ${n} character${n === 1 ? '' : 's'} built from <span class="zh">${esc(compSel)}</span>.<button class="resetcomp" type="button">Reset</button></p>`;
