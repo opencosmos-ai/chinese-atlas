@@ -272,9 +272,9 @@ function cardHtml(chr, compact){
     h += `<section class="blk"><span class="lab">Built from</span>
       <div class="parts">
         ${c.sem.map(x => `<div class="pcol">${partBtn(x, 'sem', compact)}
-          <p class="pcap">Carries meaning</p></div>`).join('')}
+          <p class="pcap">Carry meaning</p></div>`).join('')}
         ${c.pho.map(x => `<div class="pcol">${partBtn(x, 'pho', compact)}
-          <p class="pcap">Borrowed for its sound alone</p></div>`).join('')}
+          <p class="pcap">Borrowed for sound alone</p></div>`).join('')}
       </div>`;
     if (!compact && compSel){
       const n = (BUILT[compSel] || []).filter(x => byChar[x[0]] && view(byChar[x[0]])).length;
