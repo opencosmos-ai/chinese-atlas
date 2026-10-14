@@ -13,8 +13,8 @@
 /* The rare characters — CJK Extension A, B and beyond: 說文's older forms and
    the components inside its analyses. Neither Songti nor Noto Serif TC has them,
    so they come from HanaMin (花園明朝), a Ming face, cut to exactly the
-   characters this site shows (atlas/fonts.py). unicode-range keeps it from
-   touching anything the faces before it can set. */
+   characters this site shows (atlas/fonts.py). unicode-range keeps it to
+   those blocks. */
 @font-face{font-family:"Atlas Rare Han";font-display:swap;
   src:url("fonts/rare-a.woff2") format("woff2");
   unicode-range:U+2E80-2FDF,U+3400-4DBF}
@@ -34,7 +34,11 @@
   --shadow:0 1px 2px rgba(20,20,24,.06),0 8px 24px -12px rgba(20,20,24,.18);
   --serif:"Spectral",Georgia,"Times New Roman",serif;
   --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
-  --han:"Songti SC","Songti TC","Song Ti","Noto Serif TC","Atlas Rare Han",
+  /* The rare face goes first. Its unicode-range confines it to the rare blocks,
+     so it never touches a common character; but a face ahead of it that merely
+     claims a rare code point (some do, with an empty box) would stop the browser
+     before it got here. */
+  --han:"Atlas Rare Han","Songti SC","Songti TC","Song Ti","Noto Serif TC",
         "Noto Serif CJK TC","Noto Serif CJK SC","Hiragino Mincho ProN","Yu Mincho",
         "SimSun",serif;
 }
