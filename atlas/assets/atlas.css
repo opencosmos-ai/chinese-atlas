@@ -97,9 +97,11 @@ header.top{border-bottom:1px solid var(--rule);margin-bottom:22px}
       padding:30px 0 18px}
 .mast h1{font-size:clamp(28px,3.4vw,42px);line-height:1.06;font-weight:600}
 .mast h1 .zh{font-weight:500}
-.mast p{margin:8px 0 0;color:var(--ink-2);max-width:62ch;font-size:15px}
-.mast .texts{margin-top:10px;font-size:14px;color:var(--ink-2)}
-.mast .texts a{text-decoration-color:var(--rule);text-underline-offset:3px}
+.mast > div:first-child{flex:1 1 0;min-width:min(100%,320px)}
+.mast p{margin:8px 0 0;color:var(--ink-2);font-size:17px;line-height:1.55}
+.mast .texts{margin-top:10px}
+.mast .texts a{color:var(--ink);text-decoration-color:var(--ink-3);
+  text-underline-offset:3px}
 .mast .texts a:hover{color:var(--sem)}
 .counts{margin-left:auto;display:flex;gap:22px;text-align:right}
 .counts div span{display:block;font-family:var(--mono);font-size:19px;

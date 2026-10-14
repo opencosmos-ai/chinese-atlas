@@ -9,7 +9,8 @@
       "id": "tao-te-ching",
       "repo": "opencosmos-ai/taoteching",
       "export": "data/atlas-export.json",
-      "sibling": "../taoteching"
+      "sibling": "../taoteching",
+      "name": "Open Tao Te Ching"
     }
   ]
 }
