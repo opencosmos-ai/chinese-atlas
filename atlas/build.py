@@ -186,7 +186,7 @@ class Site:
             for t in self.data["texts"])
         return f"""<footer>
   <p><b>How to read this.</b> A Chinese character is usually built from parts, and
-  the parts do two different jobs. A <em style="color:var(--sem);font-style:normal">semantic</em>
+  the parts do two different jobs. A <em style="color:var(--accent);font-style:normal">semantic</em>
   part carries meaning. A <strong style="color:var(--pho);font-weight:400">phonetic</strong>
   part was borrowed for its sound alone and means nothing here, which is why the
   two are coloured differently and never merged.</p>
@@ -266,9 +266,11 @@ class Site:
   <div class="scope">
     <div class="tabs" role="tablist" aria-label="Texts">{''.join(tabs)}</div>
     <div class="counts" aria-live="polite">
+      <div><button type="button" class="kbtn" id="k-parts" aria-expanded="false"
+        aria-controls="parts" title="Browse the parts these characters are built from"><span
+        id="k-pt">—</span><span class="lab">parts</span></button></div>
       <div><span id="k-ch">—</span><div class="lab">characters</div></div>
-      <div><span id="k-oc">—</span><div class="lab">occurrences</div></div>
-      <div><span id="k-pt">—</span><div class="lab">parts</div></div>
+      <div><span id="k-oc">—</span><div class="lab">total characters</div></div>
     </div>
   </div>
 </header>
@@ -283,11 +285,23 @@ class Site:
   <span class="spacer"></span>
   <button id="clear" hidden>Reset parts filter</button>
 </div>
-<div class="room">
-  <div>
-    <div class="lab" id="status" style="padding-bottom:8px"></div>
-    <div class="grid" id="grid"></div>
+<section class="pstrip" id="parts" aria-label="Parts" hidden>
+  <div class="pstrip-head">
+    <p class="legend">The parts these characters are built from, the most-used first.
+      Pick one to show only the characters built from it.</p>
+    <div class="pstrip-acts">
+      <button type="button" id="parts-more" hidden></button>
+      <button type="button" id="parts-close">Close</button>
+    </div>
   </div>
+  <div class="pgrid" id="pgrid"></div>
+</section>
+<div class="room">
+  <div class="gridhead">
+    <div class="lab" id="status"></div>
+    <div class="lab key" id="key"><i class="dot" aria-hidden="true"></i>settled rendering</div>
+  </div>
+  <div class="grid" id="grid"></div>
   <aside class="card" aria-label="Character"><div class="card-in" id="card"></div>{noscript}</aside>
 </div>"""
 
@@ -409,10 +423,8 @@ class Site:
   </select>
 </div>
 <div class="room groom">
-  <div>
-    <div class="lab" id="gstatus" style="padding-bottom:8px"></div>
-    <div class="glist" id="glist"></div>
-  </div>
+  <div class="lab" id="gstatus" style="padding-bottom:8px"></div>
+  <div class="glist" id="glist"></div>
   <aside class="card gprev-card" aria-label="Entry preview"><div class="card-in" id="gprev"></div></aside>
 </div>
 <noscript><ul class="gstatic">{static}</ul></noscript>"""

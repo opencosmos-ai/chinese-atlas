@@ -1,14 +1,19 @@
 /* The Open Classical Chinese Character Atlas.
  *
  * Ported from the Tao Te Ching's original atlas (taoteching/tools/build_explorer.py)
- * rule for rule. Three deliberate changes, nothing else:
+ * rule for rule. Four deliberate changes, nothing else:
  *   1. Contrast. Every text colour reaches 4.5:1 on the surface it sits on
- *      (WCAG AA). Light --ink-3, --sem, --pho and --lock are one step darker;
+ *      (WCAG AA). Light --ink-3, --heat and --pho are one step darker;
  *      text that sits on --sunk uses --ink-2.
  *   2. Size floors. Body text is never under 12px; labels never under 10px.
  *   3. The Song face is guaranteed. Songti stays first, so Apple devices look as
  *      they always have; everyone else gets Noto Serif TC instead of whatever
  *      their system falls back to.
+ *   4. Settled is jade, not gold, and the grid has a key that says what its
+ *      dot means. Green reads as "done"; the old gold read as a warning.
+ *   5. Gold is the accent, not vermilion — green and vermilion side by side
+ *      clashed. Vermilion stays only where it measures something: the heat
+ *      map, its key, and the character marked in each line it counts.
  */
 /* The rare characters — CJK Extension A, B and beyond: 說文's older forms and
    the components inside its analyses. Neither Songti nor Noto Serif TC has them,
@@ -25,12 +30,14 @@
   --paper:#E9E9E4; --card:#F4F4F0; --sunk:#DEDED8;
   --ink:#16171A; --ink-2:#4A4D53; --ink-3:#656970;
   --rule:#CFCFC8;
-  --sem:#AF392D;         /* vermilion — the brush a scholar annotates with */
-  --sem-rgb:175,57,45;   /* same colour, mixable — the heat map scales its alpha */
-  --sem-soft:#F0DCD8;
+  --accent:#765B14;      /* gold — links, the pinyin, the parts that carry meaning */
+  --accent-soft:#EFE7D3;
+  --heat:#AF392D;        /* vermilion — kept for the heat map and the lines it counts */
+  --heat-rgb:175,57,45;  /* same colour, mixable — the heat map scales its alpha */
+  --heat-soft:#F0DCD8;
   --pho:#546473;         /* slate — quieter, because sound carries no meaning */
   --pho-soft:#DCE2E7;
-  --lock:#826517;
+  --lock:#2F6A4A;         /* jade — a rendering that is settled */
   --shadow:0 1px 2px rgba(20,20,24,.06),0 8px 24px -12px rgba(20,20,24,.18);
   --serif:"Spectral",Georgia,"Times New Roman",serif;
   --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
@@ -47,9 +54,10 @@
     --paper:#141518; --card:#1C1E22; --sunk:#0F1013;
     --ink:#E8E6E1; --ink-2:#B0B2B7; --ink-3:#83868C;
     --rule:#2B2E33;
-    --sem:#E07E6C; --sem-rgb:224,126,108; --sem-soft:#3A2724;
+    --accent:#D6B25C; --accent-soft:#2E281A;
+    --heat:#E07E6C; --heat-rgb:224,126,108; --heat-soft:#3A2724;
     --pho:#93A9BC; --pho-soft:#232B33;
-    --lock:#D6B25C;
+    --lock:#7FBF95;
     --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
   }
 }
@@ -57,9 +65,10 @@
   --paper:#141518; --card:#1C1E22; --sunk:#0F1013;
   --ink:#E8E6E1; --ink-2:#B0B2B7; --ink-3:#83868C;
   --rule:#2B2E33;
-  --sem:#E07E6C; --sem-rgb:224,126,108; --sem-soft:#3A2724;
+  --accent:#D6B25C; --accent-soft:#2E281A;
+  --heat:#E07E6C; --heat-rgb:224,126,108; --heat-soft:#3A2724;
   --pho:#93A9BC; --pho-soft:#232B33;
-  --lock:#D6B25C;
+  --lock:#7FBF95;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
 }
 *{box-sizing:border-box}
@@ -85,7 +94,7 @@ a{color:inherit}
 .bar{display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;
      padding:14px 0 12px;border-bottom:1px solid var(--rule)}
 .bar .home{font-weight:600;text-decoration:none;font-size:15px}
-.bar .home:hover{color:var(--sem)}
+.bar .home:hover{color:var(--accent)}
 .bar nav{display:flex;gap:16px;flex-wrap:wrap;margin-left:auto}
 .bar nav a{font-family:var(--mono);font-size:11px;letter-spacing:.08em;
   text-transform:uppercase;color:var(--ink-2);text-decoration:none}
@@ -103,10 +112,20 @@ header.top{border-bottom:1px solid var(--rule);margin-bottom:22px}
 .mast .texts{margin-top:10px}
 .mast .texts a{white-space:nowrap;color:var(--ink);text-decoration-color:var(--ink-3);
   text-underline-offset:3px}
-.mast .texts a:hover{color:var(--sem)}
+.mast .texts a:hover{color:var(--accent)}
 .counts{margin-left:auto;display:flex;gap:22px;text-align:right}
 .counts div span{display:block;font-family:var(--mono);font-size:19px;
                  color:var(--ink);font-variant-numeric:tabular-nums}
+/* The parts count opens the parts strip. Its caret is the only sign it is a
+   control; everything else matches the counts beside it. */
+.kbtn{display:block;border:0;padding:0;background:transparent;text-align:right;
+  color:inherit;font:inherit;letter-spacing:inherit;text-transform:none}
+.counts .kbtn .lab{font-size:10.5px;color:var(--ink-3)}
+.kbtn .lab::after{content:" \25BE"}
+.kbtn[aria-expanded="true"] .lab::after{content:" \25B4"}
+.kbtn:hover .lab,.kbtn[aria-expanded="true"] .lab{color:var(--ink)}
+.kbtn:disabled{cursor:default}
+.kbtn:disabled .lab::after{content:none}
 
 /* ---------- tabs: the text in scope ---------- */
 .scope{display:flex;align-items:flex-end;gap:12px 24px;flex-wrap:wrap}
@@ -130,7 +149,7 @@ header.top{border-bottom:1px solid var(--rule);margin-bottom:22px}
 .soon h2 .zh{font-weight:500;color:var(--ink-2)}
 .soon p{margin:0 0 10px;color:var(--ink-2);font-size:17px}
 .soon a{color:var(--ink);text-underline-offset:3px}
-.soon a:hover{color:var(--sem)}
+.soon a:hover{color:var(--accent)}
 
 /* ---------- controls ---------- */
 .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;
@@ -143,7 +162,7 @@ input[type=search]{
 input[type=search]::placeholder{color:var(--ink-3);opacity:1}
 @media(max-width:600px){input[type=search]{min-width:0;flex:1 1 100%}}
 input[type=search]:focus-visible,button:focus-visible,a:focus-visible,
-.cell:focus-visible,.part:focus-visible{outline:2px solid var(--sem);
+.cell:focus-visible,.part:focus-visible{outline:2px solid var(--accent);
   outline-offset:2px}
 button{
   font-family:var(--mono);font-size:11px;letter-spacing:.06em;
@@ -160,9 +179,16 @@ button[aria-pressed="true"]:not(.hc):not(.part){background:var(--ink);color:var(
 .spacer{flex:1}
 
 /* ---------- two-column reading room ---------- */
-.room{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:26px;
+/* The status line sits above the list on its own row; the card starts on the
+   list's row, so its top lines up with the list's, not the status line's. */
+.room{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);column-gap:26px;
       align-items:start}
-@media(max-width:980px){.room{grid-template-columns:1fr}}
+.room > :not(aside){grid-column:1}
+.room > aside{grid-column:2;grid-row:2}
+@media(max-width:980px){
+  .room{grid-template-columns:1fr}
+  .room > aside{grid-column:1;grid-row:auto;margin-top:26px}
+}
 
 /* ---------- the specimen index ---------- */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));
@@ -183,6 +209,26 @@ button[aria-pressed="true"]:not(.hc):not(.part){background:var(--ink);color:var(
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cell.locked::after{content:"";position:absolute;top:5px;right:5px;
   width:4px;height:4px;border-radius:50%;background:var(--lock)}
+/* The grid's key: the dot above, named. */
+.gridhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  flex-wrap:wrap;padding-bottom:8px}
+.key{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.key .dot{width:6px;height:6px;border-radius:50%;background:var(--lock)}
+/* ---------- the parts strip ---------- */
+.pstrip{background:var(--card);border:1px solid var(--rule);padding:14px 16px 16px;
+  margin:0 0 18px}
+.pstrip-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.pstrip-head .legend{margin:0}
+.pstrip-acts{display:flex;gap:8px;flex:none}
+/* A part tile reads like a grid cell: the glyph, its sound beneath. How many
+   characters it builds is in the order, and in the tooltip. */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:4px;
+  margin-top:12px}
+.pc{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 2px 5px;
+  letter-spacing:0;text-transform:none}
+.pc .pg{font-family:var(--han);font-size:22px;line-height:1.15;color:var(--ink)}
+.pc .py{min-height:1.2em}
+.pc[aria-pressed="true"] .pg,.pc[aria-pressed="true"] .py{color:var(--paper)}
 .empty{padding:40px 8px;color:var(--ink-3);font-style:italic}
 
 /* ---------- the anatomy card ---------- */
@@ -195,7 +241,7 @@ button[aria-pressed="true"]:not(.hc):not(.part){background:var(--ink);color:var(
       border-bottom:1px solid var(--rule);padding-bottom:16px;margin-bottom:16px}
 .hero .big{font-family:var(--han);font-size:76px;line-height:.92;color:var(--ink)}
 .hero .meta{min-width:0}
-.hero .meta .pin{font-family:var(--mono);font-size:14px;color:var(--sem)}
+.hero .meta .pin{font-family:var(--mono);font-size:14px;color:var(--accent)}
 .hero .meta .gloss{font-size:19px;line-height:1.25;margin-top:2px}
 .hero .meta .render{color:var(--ink-2);font-size:14px;margin-top:5px;
                     font-style:italic}
@@ -211,19 +257,19 @@ button[aria-pressed="true"]:not(.hc):not(.part){background:var(--ink);color:var(
 .hero:has(+ .gwrap){border-bottom:0;padding-bottom:0;margin-bottom:16px}
 .gbtn{display:flex;align-items:center;justify-content:space-between;gap:14px;
   background:transparent;color:var(--ink);text-decoration:none;border-radius:2px;
-  border:1px solid var(--rule);border-left:2px solid var(--sem);
+  border:1px solid var(--rule);border-left:2px solid var(--accent);
   padding:11px 14px 11px 14px;transition:background .12s,border-color .12s}
-.gbtn:hover{background:var(--sem-soft);border-color:var(--sem)}
+.gbtn:hover{background:var(--accent-soft);border-color:var(--accent)}
 .gbtn:hover .arrow{transform:translateX(3px)}
 .gbtn .k{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--sem)}
+  text-transform:uppercase;color:var(--accent)}
 .gbtn .t{display:block;font-size:16px;line-height:1.3;margin-top:3px}
 .gbtn .t .zh{font-size:18px}
-.gbtn .arrow{font-size:20px;line-height:1;flex:none;color:var(--sem);
+.gbtn .arrow{font-size:20px;line-height:1;flex:none;color:var(--accent);
   transition:transform .12s}
 .also{margin:0;font-size:13px;color:var(--ink-2)}
 .also a{color:var(--ink);text-underline-offset:3px}
-.also a:hover{color:var(--sem)}
+.also a:hover{color:var(--accent)}
 /* All texts: one short summary per text. */
 .txs{margin-top:22px}
 .txs-lab{display:block;margin-bottom:8px}
@@ -266,20 +312,20 @@ section.blk > .lab{display:block;margin-bottom:8px;
 .part .pt span{display:block;font-size:13px;line-height:1.3;color:var(--ink-2);
   overflow:hidden;text-overflow:ellipsis}
 .part .pt span.gap{font-style:italic}
-.part.sem{background:var(--sem-soft);border-color:transparent}
+.part.sem{background:var(--accent-soft);border-color:transparent}
 /* The tile the grid is filtered to. */
-.part.sem[aria-pressed="true"]{border-color:var(--sem);box-shadow:inset 0 0 0 1px var(--sem)}
+.part.sem[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .part.pho[aria-pressed="true"]{border-color:var(--pho);box-shadow:inset 0 0 0 1px var(--pho)}
 .resetrow .resetcomp{padding:3px 9px;margin-left:6px;vertical-align:1px}
-.part.sem .pg,.part.sem .pt b{color:var(--sem)}
+.part.sem .pg,.part.sem .pt b{color:var(--accent)}
 .part.pho{background:var(--pho-soft);border-color:transparent}
 .part.pho .pg,.part.pho .pt b{color:var(--pho)}
 .legend{font-size:13px;color:var(--ink-2);margin:9px 0 0;line-height:1.45}
-.legend em{color:var(--sem);font-style:normal}
+.legend em{color:var(--accent);font-style:normal}
 .legend strong{color:var(--pho);font-weight:400}
 
 .swz{font-family:var(--han);font-size:16px;line-height:1.7;color:var(--ink);
-     background:var(--sunk);padding:11px 13px;border-left:2px solid var(--sem)}
+     background:var(--sunk);padding:11px 13px;border-left:2px solid var(--accent)}
 .swen{font-size:14px;color:var(--ink-2);margin:8px 0 0;line-height:1.5;
       font-style:italic}
 .note{font-size:13px;color:var(--ink-3);margin-top:7px;line-height:1.45}
@@ -305,7 +351,7 @@ section.blk > .lab{display:block;margin-bottom:8px;
 .hc.gd{border-color:var(--pho)}
 .hc.faded{border-style:dashed;border-color:var(--rule)}
 .hc[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:1px}
-.hc:focus-visible{outline:2px solid var(--sem);outline-offset:1px}
+.hc:focus-visible{outline:2px solid var(--heat);outline-offset:1px}
 .hkey{display:flex;align-items:center;gap:7px;margin-top:10px;flex-wrap:wrap}
 .hramp{display:flex;gap:2px}
 .hramp i{width:15px;height:11px;border-radius:1px;display:block}
@@ -316,9 +362,9 @@ section.blk > .lab{display:block;margin-bottom:8px;
 .oc:first-child{border-top:0;padding-top:0}
 .oc .ref{font-family:var(--mono);font-size:10px;color:var(--ink-3);
   letter-spacing:.05em;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
-.oc .times{color:var(--sem);letter-spacing:.03em}
+.oc .times{color:var(--heat);letter-spacing:.03em}
 .oc .zh{font-family:var(--han);font-size:17px;line-height:1.6;margin-top:3px}
-.oc .zh mark{background:var(--sem-soft);color:var(--sem);
+.oc .zh mark{background:var(--heat-soft);color:var(--heat);
   border-radius:2px;padding:0 1px}
 .oc .py2{font-family:var(--mono);font-size:12px;color:var(--ink-3);
   margin-top:2px;line-height:1.45}
@@ -334,7 +380,7 @@ section.blk > .lab{display:block;margin-bottom:8px;
 .ent .lab{display:block}
 .ent .t{font-size:15px;margin-top:2px}
 .ent .t .zh{font-size:17px}
-.ent .go{color:var(--sem)}
+.ent .go{color:var(--accent)}
 
 footer{border-top:1px solid var(--rule);margin-top:40px;padding-top:18px;
   color:var(--ink-3);font-size:13px;line-height:1.6;max-width:78ch}
@@ -355,7 +401,7 @@ footer a{color:var(--ink-2);text-underline-offset:3px}
 .prose{max-width:66ch;font-size:17px;line-height:1.65;color:var(--ink)}
 .prose .zh{font-size:1.05em}
 .prose a.zc{text-decoration:none;color:inherit}
-.prose a.zc:hover{color:var(--sem);text-decoration:underline;
+.prose a.zc:hover{color:var(--accent);text-decoration:underline;
   text-underline-offset:3px}
 .prose h1,.prose h2{font-size:clamp(24px,2.6vw,30px);line-height:1.15;margin:0 0 6px;
   font-weight:600}
@@ -366,13 +412,13 @@ footer a{color:var(--ink-2);text-underline-offset:3px}
 .prose ul,.prose ol{margin:0 0 14px;padding-left:22px}
 .prose li{margin:0 0 6px}
 .prose blockquote{margin:16px 0;padding:10px 16px;background:var(--sunk);
-  border-left:2px solid var(--sem)}
+  border-left:2px solid var(--accent)}
 .prose blockquote p{margin:4px 0}
 .prose blockquote .zh{font-size:1.12em}
 .prose code{font-family:var(--mono);font-size:.82em;background:var(--sunk);
   padding:1px 4px;border-radius:2px}
 .prose a.path{text-decoration:none}
-.prose a.path:hover code{color:var(--sem)}
+.prose a.path:hover code{color:var(--accent)}
 .prose hr{border:0;border-top:1px solid var(--rule);margin:26px 0}
 .prose strong{font-weight:600}
 .tbl{overflow-x:auto;margin:16px 0}
@@ -390,7 +436,7 @@ footer a{color:var(--ink-2);text-underline-offset:3px}
 .chips button{font-family:var(--han);font-size:20px;text-transform:none;
   letter-spacing:0;padding:3px 10px;color:var(--ink)}
 .open{display:inline-block;margin-top:16px;font-family:var(--mono);font-size:11px;
-  letter-spacing:.06em;text-transform:uppercase;color:var(--sem);
+  letter-spacing:.06em;text-transform:uppercase;color:var(--accent);
   text-decoration:none}
 .open:hover{text-decoration:underline;text-underline-offset:4px}
 
@@ -401,8 +447,8 @@ footer a{color:var(--ink-2);text-underline-offset:3px}
   display:flex;gap:14px;align-items:flex-start}
 .gx a:hover{background:var(--sunk)}
 .gx .term{font-family:var(--han);font-size:34px;line-height:1;flex:none}
-.gx .py{font-size:11px;color:var(--sem);white-space:normal}
-.gx a:hover .py{color:var(--sem)}
+.gx .py{font-size:11px;color:var(--accent);white-space:normal}
+.gx a:hover .py{color:var(--accent)}
 .gx .r{font-size:15px;line-height:1.3;margin-top:3px}
 .gx .tags{margin-top:7px}
 
@@ -412,7 +458,7 @@ footer a{color:var(--ink-2);text-underline-offset:3px}
 select{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
   color:var(--ink-2);background:var(--card);border:1px solid var(--rule);border-radius:2px;
   padding:7px 8px}
-select:focus-visible{outline:2px solid var(--sem);outline-offset:2px}
+select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .seg{display:flex}
 .gcontrols input[type=search]{min-width:320px}
 @media(max-width:600px){.gcontrols input[type=search]{min-width:0}}
@@ -423,10 +469,10 @@ select:focus-visible{outline:2px solid var(--sem);outline-offset:2px}
   border-left:2px solid transparent}
 .grow:first-child{border-top:0}
 .grow:hover{background:var(--sunk)}
-.grow[aria-current="true"]{background:var(--sunk);border-left-color:var(--sem)}
+.grow[aria-current="true"]{background:var(--sunk);border-left-color:var(--accent)}
 .grow .term{font-family:var(--han);font-size:30px;line-height:1;white-space:nowrap}
 .grow .gmid{min-width:0;display:flex;flex-direction:column;gap:1px}
-.grow .py{font-family:var(--mono);font-size:11px;color:var(--sem);letter-spacing:.04em}
+.grow .py{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.04em}
 .grow .r{font-size:15px;line-height:1.35}
 .grow .setaside{font-size:13px;color:var(--ink-2);font-style:italic}
 .grow .gend{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
