@@ -171,7 +171,7 @@ class Site:
 </head>
 <body{body_attrs}>
 <div class="wrap">
-<div class="bar"><a class="home" href="{self.base}">{e(self.title)}</a>
+<div class="bar"><a class="home" href="{self.base}">{e(self.title)} &amp; Glossary</a>
 <nav aria-label="Site">{''.join(nav)}</nav></div>
 {main}
 {self.footer()}
@@ -252,7 +252,7 @@ class Site:
         return f"""<header class="top">
   <div class="mast">
     <div>
-      <h1>{e(self.title)}</h1>
+      <h1>Atlas</h1>
       <p>Every character in the classical Chinese texts OpenCosmos translates,
       taken apart into the pieces it is built from, with what each piece means,
       where the character appears, and how each translation renders it.</p>
