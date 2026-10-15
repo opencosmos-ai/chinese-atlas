@@ -133,7 +133,7 @@ class Site:
         return f"{self.base}{urllib.parse.quote(c)}/"
 
     def entry_url(self, tid, slug):
-        return f"{self.base}{tid}/glossary/{urllib.parse.quote(slug)}/"
+        return f"{self.base}glossary/{tid}/{urllib.parse.quote(slug)}/"
 
     def write(self, rel, text):
         p = self.out / rel
@@ -143,11 +143,8 @@ class Site:
     def page(self, rel, title, desc, main, body_attrs="", current=""):
         canon = (f"https://{self.domain}/{rel.removesuffix('index.html')}"
                  if self.domain else "")
-        nav = [f'<a href="{self.base}"{" aria-current=page" if current == "atlas" else ""}>Atlas</a>']
-        for t in self.data["texts"]:
-            cur = ' aria-current="page"' if current == t["id"] else ""
-            nav.append(f'<a href="{self.base}{t["id"]}/glossary/"{cur}>'
-                       f'{e(t["title"])} glossary</a>')
+        nav = [f'<a href="{self.base}"{" aria-current=page" if current == "atlas" else ""}>Atlas</a>',
+               f'<a href="{self.base}glossary/"{" aria-current=page" if current == "glossary" else ""}>Glossary</a>']
         self.write(rel, f"""<!doctype html>
 <html lang="en">
 <head>
@@ -164,6 +161,7 @@ class Site:
 <meta name="theme-color" content="#141518" media="(prefers-color-scheme: dark)">
 <meta name="atlas-base" content="{e(self.base)}">
 <meta name="atlas-data" content="{e(self.data_url)}">
+<meta name="atlas-glossary" content="{e(self.glossary_url)}">
 <link rel="icon" href="{FAVICON}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -205,21 +203,13 @@ class Site:
   The atlas itself: <a href="https://github.com/opencosmos-ai/chinese-atlas">opencosmos-ai/chinese-atlas</a>.</p>
 </footer>"""
 
-    # -- the atlas --------------------------------------------------------
-    def atlas_main(self, char=None):
-        texts = self.data["texts"]
-        # The projects this atlas serves, named as the projects name themselves
-        # (texts.json site.serving). A project can be listed before its export
-        # joins "texts", so the masthead can name it while its data is on the way.
-        names = " and ".join(
-            f'the <a href="https://github.com/{e(p["repo"])}">{e(p["name"])}</a>'
-            for p in self.cfg["site"].get("serving", []))
-        # One tab per project served. A tab whose text has no export yet still
-        # appears, and opens on a note saying the translation is on its way.
-        serving = self.cfg["site"].get("serving", [])
+    def tabs(self):
+        """One tab per project served, for the atlas and the glossary alike. A
+        tab whose text has no export yet still appears, and opens on a note
+        saying the translation is on its way."""
         tabs = ['<button role="tab" id="tab-all" data-text="all" aria-selected="true">All texts</button>']
         soon = []
-        for sv in serving:
+        for sv in self.cfg["site"].get("serving", []):
             ready = sv["id"] in self.exports
             mark = "" if ready else '<span class="soonmark">in progress</span>'
             tabs.append(f'<button role="tab" id="tab-{e(sv["id"])}" data-text="{e(sv["id"])}" '
@@ -230,6 +220,24 @@ class Site:
   <p>{e(sv.get("soon", "This translation is in progress."))}</p>
   <p><a href="https://github.com/{e(sv["repo"])}">Follow the translation on GitHub</a></p>
 </section>""")
+        return tabs, soon
+
+    def project_name(self, tid):
+        """A text's project name ("Open Tao Te Ching"), from texts.json."""
+        t = next((t for t in self.data["texts"] if t["id"] == tid), {})
+        return next((sv["name"] for sv in self.cfg["site"].get("serving", [])
+                     if sv["id"] == tid), t.get("title", tid))
+
+    # -- the atlas --------------------------------------------------------
+    def atlas_main(self, char=None):
+        texts = self.data["texts"]
+        # The projects this atlas serves, named as the projects name themselves
+        # (texts.json site.serving). A project can be listed before its export
+        # joins "texts", so the masthead can name it while its data is on the way.
+        names = " and ".join(
+            f'the <a href="https://github.com/{e(p["repo"])}">{e(p["name"])}</a>'
+            for p in self.cfg["site"].get("serving", []))
+        tabs, soon = self.tabs()
         noscript = ""
         if char:
             c = self.chars[char]
@@ -300,8 +308,8 @@ class Site:
         repo = t["repo"]
         main = f"""<nav class="crumbs" aria-label="Breadcrumb" style="margin-top:22px">
   <a href="{self.base}">Atlas</a> /
-  <a href="{self.base}{tid}/glossary/">{e(t["title"])} glossary</a> /
-  <span class="zh">{e(en["term"])}</span></nav>
+  <a href="{self.base}glossary/?text={tid}">Glossary</a> /
+  {e(t["title"])} / <span class="zh">{e(en["term"])}</span></nav>
 <div class="entry-room" style="margin-top:0">
 <article>
   <div class="prose">{body}</div>
@@ -313,37 +321,100 @@ class Site:
   <div class="card-in"><div class="chips" id="chips"></div><div id="card"></div></div>
 </aside>
 </div>"""
-        title = f"{en['term']} {en['pinyin']} — {plain(en['render'])} · {t['title']} glossary"
+        title = f"{en['term']} {en['pinyin']} — {plain(en['render'])} · {self.project_name(tid)} glossary"
         desc = (f"How the {t['title']} renders {en['term']} ({en['pinyin']}): "
                 f"{plain(en['render'])}. The research, the oldest forms, and what is set aside.")
-        self.page(f"{tid}/glossary/{en['slug']}/index.html", title, desc, main,
-                  f' data-page="entry" data-chars="{e(chars)}"', tid)
+        self.page(f"glossary/{tid}/{en['slug']}/index.html", title, desc, main,
+                  f' data-page="entry" data-chars="{e(chars)}"', "glossary")
 
-    def glossary_index(self, tid):
-        t = next(t for t in self.data["texts"] if t["id"] == tid)
-        # Titled with the project's own name ("Open Tao Te Ching"), from
-        # texts.json site.serving, falling back to the book's title.
-        name = next((sv["name"] for sv in self.cfg["site"].get("serving", [])
-                     if sv["id"] == tid), t["title"])
-        items = []
-        for en in sorted(self.exports[tid]["entries"], key=lambda x: x["slug"]):
-            status = ('<span class="tag lock">settled</span>' if en["status"] == "locked"
-                      else f'<span class="tag">{e(en["status"])}</span>')
-            items.append(f"""<a href="{self.entry_url(tid, en['slug'])}">
-  <span class="term">{e(en["term"])}</span>
-  <span><span class="py">{e(en["pinyin"])}</span>
-  <span class="r" style="display:block">{md.inline(en["render"], md.Context())}</span>
-  <span class="tags">{status}</span></span></a>""")
-        main = f"""<header class="top"><div class="mast"><div>
-  <h1>{e(name)} glossary</h1>
-  <p>Each entry is the argument behind one ruling: what the character is, its
-  oldest forms, how the text uses it, and why the English reads as it does.
-  {len(items)} entries, each rendered from the translation's repository.</p>
-</div></div></header>
-<div class="gx">{''.join(items)}</div>"""
-        self.page(f"{tid}/glossary/index.html", f"{name} glossary · {self.title}",
-                  f"Every glossary entry of the OpenCosmos {t['title']} translation.",
-                  main, ' data-page="index"', tid)
+    # -- the glossary ------------------------------------------------------
+    def glossary_records(self):
+        """Every entry of every text, as the glossary page searches and previews
+        it: the ruling, the words it sets aside, and its opening paragraph."""
+        import re
+        import unicodedata
+        recs = []
+        for tid, x in self.exports.items():
+            ctx = self.md_ctx(tid)
+            for en in x["entries"]:
+                paras = [p.strip() for p in re.split(r"\n\s*\n", en["body"]) if p.strip()]
+                lock = next((p for p in paras if p.startswith(("**Locked", "**Recommended"))), "")
+                after = paras[paras.index(lock) + 1:] if lock else paras[1:]
+                lead = next((p for p in after if not p.startswith(("#", "|", ">", "-", "*Say", "1."))), "")
+                chs = en.get("chapters")
+                if not chs:   # older exports: the chapters every character of the term shares
+                    sets = [set(self.chars[c]["t"].get(tid, {}).get("chs") or [])
+                            for c in en["chars"] if c in self.chars]
+                    chs = sorted(set.intersection(*sets)) if sets else []
+                form = ("pairing" if "&" in en["term"] or "/" in en["pinyin"]
+                        else "compound" if len(en["chars"]) > 1 else "character")
+                key = unicodedata.normalize("NFD", en["pinyin"]).encode("ascii", "ignore").decode().lower()
+                recs.append({
+                    "tid": tid, "slug": en["slug"], "term": en["term"], "chars": en["chars"],
+                    "pinyin": en["pinyin"], "key": key, "render": plain(en["render"]),
+                    "status": en["status"], "form": form, "chapters": chs,
+                    "aside": [plain(w) for w in en.get("forbidden") or []],
+                    "lock": md.render(lock, ctx) if lock else "",
+                    "lead": md.render(lead, ctx) if lead else "",
+                })
+        return sorted(recs, key=lambda r: (r["key"], r["tid"]))
+
+    def glossary_page(self, recs):
+        tabs, soon = self.tabs()
+        static = "".join(
+            f'<li><a href="{self.entry_url(r["tid"], r["slug"])}"><span class="zh">{e(r["term"])}</span> '
+            f'{e(r["pinyin"])} — {e(r["render"])}</a> ({e(self.project_name(r["tid"]))})</li>'
+            for r in recs)
+        main = f"""<header class="top">
+  <div class="mast"><div>
+    <h1>Glossary</h1>
+    <p>Each entry is the argument behind one ruling: what a term is, its oldest
+    forms, how the text uses it, and why the English reads as it does. Rulings
+    belong to their translation, so the same character can be ruled differently
+    in each.</p>
+  </div></div>
+  <div class="scope">
+    <div class="tabs" role="tablist" aria-label="Texts">{''.join(tabs)}</div>
+    <div class="counts" aria-live="polite">
+      <div><span id="g-n">—</span><div class="lab">entries</div></div>
+      <div><span id="g-set">—</span><div class="lab">settled</div></div>
+      <div><span id="g-open">—</span><div class="lab">open</div></div>
+    </div>
+  </div>
+</header>
+{''.join(soon)}
+<div class="controls gcontrols">
+  <input type="search" id="gq" placeholder="Search terms, English, or words set aside"
+         aria-label="Search the glossary">
+  <div class="seg" role="group" aria-label="Status">
+    <button data-status="all" aria-pressed="true">All</button>
+    <button data-status="locked" aria-pressed="false">Settled</button>
+    <button data-status="open" aria-pressed="false">Open</button>
+  </div>
+  <select id="gform" aria-label="Form">
+    <option value="all">Every form</option>
+    <option value="character">Characters</option>
+    <option value="compound">Compounds</option>
+    <option value="pairing">Pairings</option>
+  </select>
+  <select id="gch" aria-label="Chapter"></select>
+  <select id="gsort" aria-label="Sort">
+    <option value="az">A–Z by pinyin</option>
+    <option value="reach">By reach</option>
+  </select>
+</div>
+<div class="room groom">
+  <div>
+    <div class="lab" id="gstatus" style="padding-bottom:8px"></div>
+    <div class="glist" id="glist"></div>
+  </div>
+  <aside class="card gprev-card" aria-label="Entry preview"><div class="card-in" id="gprev"></div></aside>
+</div>
+<noscript><ul class="gstatic">{static}</ul></noscript>"""
+        self.page("glossary/index.html", f"Glossary · {self.title}",
+                  "Every glossary entry of the OpenCosmos Chinese translations: the "
+                  "argument behind each ruling, searchable by the words it sets aside.",
+                  main, ' data-page="glossary"', "glossary")
 
     def check_rare(self):
         # A warning, not a failure: a glossary edit must never be blocked from
@@ -366,6 +437,11 @@ class Site:
         shutil.copytree(ASSETS / "fonts", self.out / "assets" / "fonts")
         h = hashlib.sha256((ASSETS / "atlas.css").read_bytes() +
                            (ASSETS / "atlas.js").read_bytes()).hexdigest()[:10]
+        recs = self.glossary_records()
+        gblob = json.dumps(recs, ensure_ascii=False, separators=(",", ":"))
+        (self.out / "assets" / "glossary.json").write_text(gblob, encoding="utf-8")
+        gv = hashlib.sha256(gblob.encode()).hexdigest()[:10]
+        self.glossary_url = f"{self.base}assets/glossary.json?v={gv}"
         self.data_url = f"{self.base}assets/data.json?v={v}"
         self.css_url = f"{self.base}assets/atlas.css?v={h}"
         self.js_url = f"{self.base}assets/atlas.js?v={h}"
@@ -383,8 +459,8 @@ class Site:
             self.page(f"{c}/index.html", title, d, self.atlas_main(c),
                       f' data-page="atlas" data-char="{e(c)}"', "atlas")
         n_entries = 0
+        self.glossary_page(recs)
         for tid, x in self.exports.items():
-            self.glossary_index(tid)
             for en in x["entries"]:
                 self.entry_page(tid, en)
                 n_entries += 1

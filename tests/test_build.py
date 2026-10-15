@@ -36,8 +36,14 @@ class Site(unittest.TestCase):
     def test_every_entry_has_a_page(self):
         for tid, x in self.exports.items():
             for en in x["entries"]:
-                self.assertTrue((self.out / tid / "glossary" / en["slug"] / "index.html").exists(),
+                self.assertTrue((self.out / "glossary" / tid / en["slug"] / "index.html").exists(),
                                 en["slug"])
+
+    def test_glossary_lists_every_entry_without_script(self):
+        page = (self.out / "glossary" / "index.html").read_text(encoding="utf-8")
+        for tid, x in self.exports.items():
+            for en in x["entries"]:
+                self.assertIn(f'/glossary/{tid}/{urllib.parse.quote(en["slug"])}/', page, en["slug"])
 
     def test_internal_links_resolve(self):
         broken = set()
@@ -51,7 +57,7 @@ class Site(unittest.TestCase):
         self.assertEqual(sorted(broken), [])
 
     def test_no_markdown_survives_rendering(self):
-        for page in (self.out).glob("*/glossary/*/index.html"):
+        for page in (self.out).glob("glossary/*/*/index.html"):
             prose = page.read_text(encoding="utf-8").split('<div class="prose">', 1)[1]
             prose = prose.split("</article>", 1)[0]
             text = re.sub(r"<code>.*?</code>", "", prose)

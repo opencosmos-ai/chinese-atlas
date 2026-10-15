@@ -9,6 +9,19 @@ it.
 **Now holding:** the [Tao Te Ching](https://github.com/opencosmos-ai/taoteching)
 (道德經). **Next:** the [I Ching](https://github.com/opencosmos-ai/iching) (易經).
 
+## Two rooms
+
+- **The atlas** (`/`, and `/常/` for each character) is about **characters**:
+  what each is built from, where it occurs, and how each translation renders
+  it. Descriptive, from data, and mostly shared across texts. Tabs scope it to
+  one text or all of them.
+- **The glossary** (`/glossary/`, entries at `/glossary/<text>/<entry>/`) is
+  about **decisions**: why a translation renders a term the way it does. Each
+  entry is one translator's ruling for one text, so entries stay labelled with
+  their translation, and the same character can carry a different ruling in
+  each. One index serves every text, scoped by the same tabs; search reaches
+  the words each ruling sets aside, so "eternal" finds 常.
+
 ## How it stays true
 
 The atlas has **no content of its own**. Each translation repository publishes

@@ -12,18 +12,19 @@
 const BASE = document.querySelector('meta[name="atlas-base"]').content;
 const DATA_URL = document.querySelector('meta[name="atlas-data"]').content;
 const PAGE = document.body.dataset.page;
+const el = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, m =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const charUrl = c => BASE + encodeURIComponent(c) + '/';
+const entryUrl = (tid, slug) => BASE + 'glossary/' + tid + '/' + encodeURIComponent(slug) + '/';
+const SITE = 'Open Classical Chinese Character Atlas';
+if (PAGE === 'glossary') return glossaryPage();
 if (PAGE !== 'atlas' && PAGE !== 'entry') return;   // index pages need no data
 const D = await (await fetch(DATA_URL)).json();
 
 const TEXTS = D.texts, TX = Object.fromEntries(TEXTS.map(t => [t.id, t]));
 const CH = D.chars, G = D.glyphs, BUILT = D.built;
 const byChar = Object.fromEntries(CH.map(c => [c.c, c]));
-const el = id => document.getElementById(id);
-const esc = s => String(s ?? '').replace(/[&<>"]/g, m =>
-  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
-const charUrl = c => BASE + encodeURIComponent(c) + '/';
-const entryUrl = (tid, slug) => BASE + tid + '/glossary/' + encodeURIComponent(slug) + '/';
-const SITE = 'Open Classical Chinese Character Atlas';
 
 // ---------------------------------------------------------------- per-text view
 // A character carries one record per text it appears in (c.t[tid]). The grid
@@ -528,4 +529,139 @@ const START = document.body.dataset.char || '道';
 history.replaceState({c: START}, '', location.href);
 sel = START;
 setTab(tf, false);
+
+// ---------------------------------------------------------------- the glossary
+// One glossary for every translation. Each entry keeps its text's label; the
+// tabs scope it, as they scope the atlas. Search reaches the words a ruling
+// sets aside, so "eternal" finds 常 and says why it is not there.
+async function glossaryPage(){
+  const G2 = await (await fetch(document.querySelector('meta[name="atlas-glossary"]').content)).json();
+  const SERVE = [...document.querySelectorAll('[role="tab"]')];
+  const TITLES = Object.fromEntries(SERVE.map(b => [b.dataset.text,
+    b.childNodes[0].textContent.trim()]));
+  const fold = x => (x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const P = new URLSearchParams(location.search);
+  const st = {
+    text: P.get('text') || 'all', q: P.get('q') || '', status: P.get('status') || 'all',
+    form: P.get('form') || 'all', ch: P.get('ch') || '', sort: P.get('sort') || 'az',
+    sel: P.get('sel') || '',
+  };
+  if (!SERVE.some(b => b.dataset.text === st.text)) st.text = 'all';
+  const ready = id => id === 'all' || G2.some(r => r.tid === id);
+  const list = el('glist'), prev = el('gprev');
+  el('gq').value = st.q; el('gform').value = st.form; el('gsort').value = st.sort;
+
+  function chapterOptions(){
+    const sel = el('gch');
+    const recs = G2.filter(r => st.text === 'all' || r.tid === st.text);
+    const max = Math.max(0, ...recs.flatMap(r => r.chapters));
+    sel.hidden = st.text === 'all' || !max;
+    sel.innerHTML = '<option value="">Any chapter</option>' +
+      Array.from({length: max}, (_, k) => `<option value="${k + 1}">Chapter ${k + 1}</option>`).join('');
+    sel.value = st.ch;
+  }
+
+  function matches(){
+    const q = fold(st.q.trim());
+    let out = G2.filter(r => st.text === 'all' || r.tid === st.text);
+    const scoped = out;
+    if (st.status !== 'all') out = out.filter(r => (st.status === 'locked') === (r.status === 'locked'));
+    if (st.form !== 'all') out = out.filter(r => r.form === st.form);
+    if (st.ch) out = out.filter(r => r.chapters.includes(+st.ch));
+    out = out.map(r => {
+      if (!q) return [r, null];
+      const hit = r.term.includes(st.q.trim()) || fold(r.pinyin).includes(q) ||
+        fold(r.render).includes(q) || r.slug.includes(q);
+      const aside = r.aside.find(w => fold(w).includes(q));
+      return hit || aside ? [r, hit ? null : aside] : null;
+    }).filter(Boolean);
+    if (st.sort === 'reach') out.sort((a, b) => b[0].chapters.length - a[0].chapters.length);
+    return [out, scoped];
+  }
+
+  function url(){
+    const p = new URLSearchParams();
+    for (const [k, v, d] of [['text', st.text, 'all'], ['q', st.q, ''], ['status', st.status, 'all'],
+      ['form', st.form, 'all'], ['ch', st.ch, ''], ['sort', st.sort, 'az'], ['sel', st.sel, '']])
+      if (v && v !== d) p.set(k, v);
+    history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));
+  }
+
+  function preview(r){
+    if (!r){ prev.innerHTML = '<p class="legend">Nothing matches. Try another word, or clear a filter.</p>'; return; }
+    const single = r.chars.length === 1;
+    prev.innerHTML = `<div class="hero gp-hero"><div class="big">${esc(r.term)}</div>
+      <div class="meta"><div class="pin">${esc(r.pinyin)}</div>
+      <span class="lab">${esc(TITLES[r.tid] || r.tid)}</span>
+      <div class="gloss">${esc(r.render)}</div>
+      <div class="tags">${r.status === 'locked' ? '<span class="tag lock">settled</span>'
+        : `<span class="tag">${esc(r.status)}</span>`}<span class="tag">${esc(r.form)}</span>${
+        r.chapters.length ? `<span class="tag">${r.chapters.length} chapter${r.chapters.length === 1 ? '' : 's'}</span>` : ''}</div>
+      </div></div>
+      <a class="gbtn" href="${entryUrl(r.tid, r.slug)}"><span><span class="k">Read the full entry</span>
+        <span class="t"><span class="zh">${esc(r.term)}</span> ${esc(r.pinyin)} — ${esc(r.render)}</span></span>
+        <span class="arrow" aria-hidden="true">→</span></a>
+      ${r.aside.length ? `<section class="blk"><span class="lab">Set aside</span>
+        <div class="asides">${r.aside.map(w => `<span class="aside">${esc(w)}</span>`).join('')}</div></section>` : ''}
+      <section class="blk gp-prose prose">${r.lock}${r.lead}</section>
+      ${single ? `<a class="open" href="${charUrl(r.chars[0])}">Open ${esc(r.chars[0])} in the atlas →</a>` : ''}`;
+  }
+
+  function draw(){
+    const isReady = ready(st.text);
+    document.querySelectorAll('.soon').forEach(p => p.hidden = p.id !== 'soon-' + st.text);
+    document.querySelector('.gcontrols').hidden = !isReady;
+    document.querySelector('.groom').hidden = !isReady;
+    const [out, scoped] = matches();
+    el('g-n').textContent = isReady ? scoped.length : '—';
+    el('g-set').textContent = isReady ? scoped.filter(r => r.status === 'locked').length : '—';
+    el('g-open').textContent = isReady ? scoped.filter(r => r.status !== 'locked').length : '—';
+    if (!isReady){ url(); return; }
+    el('gstatus').textContent = `${out.length} of ${scoped.length} entries`;
+    if (!out.some(([r]) => r.tid + '/' + r.slug === st.sel)) st.sel = out.length ? out[0][0].tid + '/' + out[0][0].slug : '';
+    list.innerHTML = out.length ? out.map(([r, aside]) => {
+      const k = r.tid + '/' + r.slug;
+      return `<a class="grow" href="${entryUrl(r.tid, r.slug)}" data-k="${esc(k)}" aria-current="${k === st.sel}">
+        <span class="term">${esc(r.term)}</span>
+        <span class="gmid"><span class="py">${esc(r.pinyin)}</span>
+          <span class="r">${esc(r.render)}</span>
+          ${aside ? `<span class="setaside">Sets aside “${esc(aside)}”</span>` : ''}</span>
+        <span class="gend">${st.text === 'all' ? `<span class="lab">${esc(TITLES[r.tid] || r.tid)}</span>` : ''}
+          ${r.status === 'locked' ? '<span class="tag lock">settled</span>' : `<span class="tag">${esc(r.status)}</span>`}</span>
+      </a>`;
+    }).join('') : '<p class="empty">Nothing matches. Try another word, or clear a filter.</p>';
+    list.querySelectorAll('.grow').forEach(a => a.onclick = ev => {
+      if (window.innerWidth <= 980 || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.button) return;
+      ev.preventDefault(); st.sel = a.dataset.k; draw();
+    });
+    preview((out.find(([r]) => r.tid + '/' + r.slug === st.sel) || [])[0]);
+    url();
+  }
+
+  SERVE.forEach((b, i) => {
+    const on = () => {
+      st.text = b.dataset.text; st.ch = '';
+      SERVE.forEach(x => { x.setAttribute('aria-selected', String(x === b)); x.tabIndex = x === b ? 0 : -1; });
+      chapterOptions(); draw();
+    };
+    b.onclick = on;
+    b.onkeydown = e => {
+      const k = {ArrowRight: 1, ArrowLeft: -1}[e.key]; if (!k) return;
+      const nb = SERVE[(i + k + SERVE.length) % SERVE.length]; nb.focus(); nb.click();
+    };
+    if (b.dataset.text === st.text){ b.setAttribute('aria-selected', 'true'); b.tabIndex = 0; }
+    else { b.setAttribute('aria-selected', 'false'); b.tabIndex = -1; }
+  });
+  document.querySelectorAll('[data-status]').forEach(b => {
+    b.setAttribute('aria-pressed', String(b.dataset.status === st.status));
+    b.onclick = () => { st.status = b.dataset.status;
+      document.querySelectorAll('[data-status]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      draw(); };
+  });
+  el('gq').oninput = e => { st.q = e.target.value; draw(); };
+  el('gform').onchange = e => { st.form = e.target.value; draw(); };
+  el('gch').onchange = e => { st.ch = e.target.value; draw(); };
+  el('gsort').onchange = e => { st.sort = e.target.value; draw(); };
+  chapterOptions(); draw();
+}
 })();
