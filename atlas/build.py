@@ -171,7 +171,7 @@ class Site:
 </head>
 <body{body_attrs}>
 <div class="wrap">
-<div class="bar"><a class="home" href="{self.base}">{e(self.title)} &amp; Glossary</a>
+<div class="bar"><a class="home" href="{self.base}">{e(self.title)}</a>
 <nav aria-label="Site">{''.join(nav)}</nav></div>
 {main}
 {self.footer()}
@@ -222,6 +222,12 @@ class Site:
 </section>""")
         return tabs, soon
 
+    def serving_names(self):
+        """"the Open Tao Te Ching and the I Ching", each linked to its repo."""
+        return " and ".join(
+            f'the <a href="https://github.com/{e(p["repo"])}">{e(p["name"])}</a>'
+            for p in self.cfg["site"].get("serving", []))
+
     def project_name(self, tid):
         """A text's project name ("Open Tao Te Ching"), from texts.json."""
         t = next((t for t in self.data["texts"] if t["id"] == tid), {})
@@ -234,9 +240,7 @@ class Site:
         # The projects this atlas serves, named as the projects name themselves
         # (texts.json site.serving). A project can be listed before its export
         # joins "texts", so the masthead can name it while its data is on the way.
-        names = " and ".join(
-            f'the <a href="https://github.com/{e(p["repo"])}">{e(p["name"])}</a>'
-            for p in self.cfg["site"].get("serving", []))
+        names = self.serving_names()
         tabs, soon = self.tabs()
         noscript = ""
         if char:
@@ -372,6 +376,7 @@ class Site:
     forms, how the text uses it, and why the English reads as it does. Rulings
     belong to their translation, so the same character can be ruled differently
     in each.</p>
+    <p class="texts">Serving {self.serving_names()}.</p>
   </div></div>
   <div class="scope">
     <div class="tabs" role="tablist" aria-label="Texts">{''.join(tabs)}</div>

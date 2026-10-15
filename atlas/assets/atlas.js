@@ -17,7 +17,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, m =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const charUrl = c => BASE + encodeURIComponent(c) + '/';
 const entryUrl = (tid, slug) => BASE + 'glossary/' + tid + '/' + encodeURIComponent(slug) + '/';
-const SITE = 'Open Classical Chinese Character Atlas';
+const SITE = 'Open Classical Chinese Character Atlas & Glossary';
 if (PAGE === 'glossary') return glossaryPage();
 if (PAGE !== 'atlas' && PAGE !== 'entry') return;   // index pages need no data
 const D = await (await fetch(DATA_URL)).json();

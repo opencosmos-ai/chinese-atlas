@@ -1,6 +1,6 @@
 {
   "site": {
-    "title": "Open Classical Chinese Character Atlas",
+    "title": "Open Classical Chinese Character Atlas & Glossary",
     "domain": "chinese-atlas.opencosmos.ai",
     "project_base": "/chinese-atlas/",
     "serving": [
