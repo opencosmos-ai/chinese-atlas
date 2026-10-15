@@ -62,7 +62,7 @@ function lum(c){
 }
 function textOn(alpha){
   const cs = getComputedStyle(document.documentElement);
-  const sem = rgb(cs.getPropertyValue('--sem-rgb')), base = rgb(cs.getPropertyValue('--sunk'));
+  const sem = rgb(cs.getPropertyValue('--heat-rgb')), base = rgb(cs.getPropertyValue('--sunk'));
   const bg = sem.map((s, i) => s * alpha + base[i] * (1 - alpha));
   const L = lum(bg);
   return (1.05 / (L + .05)) >= ((L + .05) / .05) ? '#fff' : '#000';
@@ -161,7 +161,7 @@ function heatSection(c, t, mode){
     const pressed = unitFilter && unitFilter[0] === t.id && unitFilter[1] === n;
     h += `<button class="${cls}" type="button" data-tid="${t.id}" data-u="${n}"
       ${k ? '' : 'tabindex="-1" aria-disabled="true"'} aria-pressed="${!!pressed}"
-      style="background:${k ? `rgba(var(--sem-rgb),${a.toFixed(3)})` : 'var(--sunk)'};${
+      style="background:${k ? `rgba(var(--heat-rgb),${a.toFixed(3)})` : 'var(--sunk)'};${
         k ? `color:${textOn(a)};` : ''}"
       title="${esc(title)}">${n}</button>`;
   }
@@ -169,7 +169,7 @@ function heatSection(c, t, mode){
     <div class="hkey">
       <span class="lab">none</span>
       <span class="hramp">${[0, .25, .5, .75, 1].map(x =>
-        `<i style="background:${x ? `rgba(var(--sem-rgb),${(0.18 + 0.82 * x).toFixed(2)})`
+        `<i style="background:${x ? `rgba(var(--heat-rgb),${(0.18 + 0.82 * x).toFixed(2)})`
           : 'var(--sunk)'}"></i>`).join('')}</span>
       <span class="lab">${peak}&times; in one ${unit}</span>
     </div>`;
@@ -387,6 +387,8 @@ function counts(){
   el('k-ch').textContent = ready ? inScope.length.toLocaleString() : '—';
   el('k-oc').textContent = ready ? inScope.reduce((a, c) => a + view(c).n, 0).toLocaleString() : '—';
   el('k-pt').textContent = ready ? parts.toLocaleString() : '—';
+  el('k-parts').disabled = !ready;
+  if (!ready) openParts(false);
 }
 
 function visible(){
@@ -433,6 +435,8 @@ function draw(){
     s += ` built from ${filter.comp}` + (g[1] ? ` (${g[1]})` : '');
   }
   status.textContent = s;
+  drawParts();
+  el('key').hidden = !list.some(([, v]) => v.lock);
   el('clear').hidden = !filter.comp;
 }
 
@@ -483,6 +487,45 @@ function resetComp(){
   draw(); if (sel) show(sel);
 }
 el('clear').onclick = resetComp;
+
+// ---------------------------------------------------------------- the parts
+// The "parts" count opens a strip of every part in scope, the most-used first.
+// Picking one is the same filter as a "Built from" tile on the card.
+const PARTS_FIRST = 48;
+let partsAll = false;
+function partsInScope(){
+  return Object.entries(BUILT)
+    .map(([p, m]) => [p, m.filter(x => byChar[x[0]] && view(byChar[x[0]])).length])
+    .filter(([, n]) => n)
+    .sort((a, b) => b[1] - a[1]);
+}
+function drawParts(){
+  if (el('parts').hidden) return;
+  const ps = partsInScope();
+  el('pgrid').innerHTML = (partsAll ? ps : ps.slice(0, PARTS_FIRST)).map(([p, n]) => {
+    const g = G[p] || [];
+    const title = `${p}${g[0] ? ' ' + g[0] : ''}${g[1] ? ' — ' + g[1] : ''}` +
+      ` · builds ${n} character${n === 1 ? '' : 's'}`;
+    return `<button type="button" class="pc" data-comp="${esc(p)}"
+      aria-pressed="${compSel === p}" title="${esc(title)}"><span
+      class="pg">${esc(p)}</span><span class="py">${esc(g[0] || '')}</span></button>`;
+  }).join('');
+  const more = el('parts-more');
+  more.hidden = ps.length <= PARTS_FIRST;
+  more.textContent = partsAll ? `Show the first ${PARTS_FIRST}` : `Show all ${ps.length}`;
+}
+function openParts(open){
+  el('parts').hidden = !open;
+  el('k-parts').setAttribute('aria-expanded', String(open));
+  drawParts();
+}
+el('k-parts').onclick = () => openParts(el('parts').hidden);
+el('parts-close').onclick = () => { openParts(false); el('k-parts').focus(); };
+el('parts-more').onclick = () => { partsAll = !partsAll; drawParts(); };
+el('pgrid').onclick = e => {
+  const b = e.target.closest('[data-comp]');
+  if (b) b.dataset.comp === compSel ? resetComp() : setComp(b.dataset.comp);
+};
 const TABS = [...document.querySelectorAll('[role="tab"]')];
 function setTab(id, push){
   tf = id;
