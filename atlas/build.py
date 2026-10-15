@@ -321,6 +321,10 @@ class Site:
 
     def glossary_index(self, tid):
         t = next(t for t in self.data["texts"] if t["id"] == tid)
+        # Titled with the project's own name ("Open Tao Te Ching"), from
+        # texts.json site.serving, falling back to the book's title.
+        name = next((sv["name"] for sv in self.cfg["site"].get("serving", [])
+                     if sv["id"] == tid), t["title"])
         items = []
         for en in sorted(self.exports[tid]["entries"], key=lambda x: x["slug"]):
             status = ('<span class="tag lock">settled</span>' if en["status"] == "locked"
@@ -331,13 +335,13 @@ class Site:
   <span class="r" style="display:block">{md.inline(en["render"], md.Context())}</span>
   <span class="tags">{status}</span></span></a>""")
         main = f"""<header class="top"><div class="mast"><div>
-  <h1>{e(t["title"])} glossary <span class="zh">{e(t["title_zh"])}</span></h1>
+  <h1>{e(name)} glossary</h1>
   <p>Each entry is the argument behind one ruling: what the character is, its
   oldest forms, how the text uses it, and why the English reads as it does.
   {len(items)} entries, each rendered from the translation's repository.</p>
 </div></div></header>
 <div class="gx">{''.join(items)}</div>"""
-        self.page(f"{tid}/glossary/index.html", f"{t['title']} glossary · {self.title}",
+        self.page(f"{tid}/glossary/index.html", f"{name} glossary · {self.title}",
                   f"Every glossary entry of the OpenCosmos {t['title']} translation.",
                   main, ' data-page="index"', tid)
 
