@@ -14,6 +14,8 @@
  *   5. Gold is the accent, not vermilion — green and vermilion side by side
  *      clashed. Vermilion stays only where it measures something: the heat
  *      map, its key, and the character marked in each line it counts.
+ *   6. Dark mode sits nearer black, and its rules are quieter, so the grid's
+ *      dividing lines no longer make its tiles look lighter than the card.
  */
 /* The rare characters — CJK Extension A, B and beyond: 說文's older forms and
    the components inside its analyses. Neither Songti nor Noto Serif TC has them,
@@ -41,6 +43,10 @@
   --shadow:0 1px 2px rgba(20,20,24,.06),0 8px 24px -12px rgba(20,20,24,.18);
   --serif:"Spectral",Georgia,"Times New Roman",serif;
   --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  /* The OpenCosmos family's face (Tailwind's sans stack, as opencosmos.ai sets
+     it). Only the family bar and footer line use it. */
+  --sans:ui-sans-serif,system-ui,sans-serif,"Apple Color Emoji","Segoe UI Emoji",
+         "Segoe UI Symbol","Noto Color Emoji";
   /* The rare face goes first. Its unicode-range confines it to the rare blocks,
      so it never touches a common character; but a face ahead of it that merely
      claims a rare code point (some do, with an empty box) would stop the browser
@@ -51,9 +57,9 @@
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --paper:#141518; --card:#1C1E22; --sunk:#0F1013;
+    --paper:#0B0C0E; --card:#141519; --sunk:#07080A;
     --ink:#E8E6E1; --ink-2:#B0B2B7; --ink-3:#83868C;
-    --rule:#2B2E33;
+    --rule:#212328;
     --accent:#D6B25C; --accent-soft:#2E281A;
     --heat:#E07E6C; --heat-rgb:224,126,108; --heat-soft:#3A2724;
     --pho:#93A9BC; --pho-soft:#232B33;
@@ -62,9 +68,9 @@
   }
 }
 :root[data-theme="dark"]{
-  --paper:#141518; --card:#1C1E22; --sunk:#0F1013;
+  --paper:#0B0C0E; --card:#141519; --sunk:#07080A;
   --ink:#E8E6E1; --ink-2:#B0B2B7; --ink-3:#83868C;
-  --rule:#2B2E33;
+  --rule:#212328;
   --accent:#D6B25C; --accent-soft:#2E281A;
   --heat:#E07E6C; --heat-rgb:224,126,108; --heat-soft:#3A2724;
   --pho:#93A9BC; --pho-soft:#232B33;
@@ -90,29 +96,80 @@ a{color:inherit}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);
     white-space:nowrap}
 
-/* ---------- site bar ---------- */
-.bar{display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;
-     padding:14px 0 12px;border-bottom:1px solid var(--rule)}
-.bar .home{font-weight:600;text-decoration:none;font-size:15px}
-.bar .home:hover{color:var(--accent)}
-.bar nav{display:flex;gap:16px;flex-wrap:wrap;margin-left:auto}
-.bar nav a{font-family:var(--mono);font-size:11px;letter-spacing:.08em;
-  text-transform:uppercase;color:var(--ink-2);text-decoration:none}
-.bar nav a:hover,.bar nav a[aria-current="page"]{color:var(--ink);
+/* ---------- the OpenCosmos bar ----------
+   The family's header as @opencosmos/ui's Header draws it on opencosmos.ai:
+   a bold sans wordmark, quiet sans links, 64px tall (80 on wide screens). Its
+   colours are the atlas's own, so it follows light and dark with the page. */
+.family{display:flex;align-items:center;justify-content:space-between;gap:10px 24px;
+  flex-wrap:wrap;min-height:64px;font-family:var(--sans)}
+@media(min-width:1024px){.family{min-height:80px}}
+.family .mark{font-size:20px;font-weight:700;letter-spacing:-.5px;line-height:1.2;
+  color:var(--ink);text-decoration:none}
+.family nav{display:flex;flex-wrap:wrap;gap:8px 32px;margin-left:auto}
+.family nav a{font-size:14px;font-weight:500;color:var(--ink-2);text-decoration:none;
+  transition:color .2s}
+.family nav a:hover{color:var(--ink)}
+/* The family's outline button, small size: a 1px rule that fills on hover,
+   the mark nudging right. It fills with ink, as the atlas's pressed buttons do. */
+.family .gh{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;
+  border:1px solid var(--rule);border-radius:6px;font-size:12px;font-weight:500;
+  color:var(--ink);text-decoration:none;transition:background .2s,color .2s,border-color .2s}
+.family .gh svg{flex:none;transition:transform .3s}
+.family .gh:hover{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.family .gh:hover svg{transform:translateX(4px)}
+@media(prefers-reduced-motion:reduce){.family .gh,.family .gh svg{transition:none}
+  .family .gh:hover svg{transform:none}}
+/* Phones: the mark and the button share the first row, the links take the second;
+   the button keeps only its icon, as on opencosmos.ai. */
+@media(max-width:640px){
+  .family{padding:18px 0 12px}
+  .family .gh{order:2;margin-left:auto;padding:0 8px}
+  .family .gh span{display:none}
+  .family nav{order:3;width:100%;margin-left:0;gap:6px 20px}
+}
+/* The Footer's bottom bar: a rule, one centred line. */
+.family-foot{border-top:1px solid var(--rule);margin-top:40px;padding:24px 0 0;
+  font-family:var(--sans);font-size:14px;line-height:1.5;color:var(--ink-2);
+  text-align:center}
+.family-foot p{margin:0}
+.family-foot a{color:var(--ink);font-weight:500;text-decoration:none}
+.family-foot a:hover{text-decoration:underline;text-underline-offset:3px}
+
+/* ---------- the site's name, and its two rooms ----------
+   Under the family bar: the name as the page's title, Atlas and Glossary
+   directly beneath it at the left margin. No rule; the masthead follows. */
+/* The family bar's lower half supplies the space above the name; padding and
+   gap are set so nav→name and name→rooms read as the same step (~24px of
+   clear space between the text), matching rooms→intro below. */
+.sitehead{display:flex;flex-direction:column;align-items:flex-start;gap:29px;padding:4px 0 0}
+/* On phones the family bar ends closer to its text, so the name sits lower. */
+@media(max-width:640px){.sitehead{padding-top:15px}}
+.sitename{margin:0;min-width:0;font-size:clamp(22px,2.7vw,34px);
+  line-height:1.06;font-weight:600;letter-spacing:-.03em;text-wrap:balance}
+/* Where the page has its own title (an entry's term), the name steps back. */
+p.sitename{font-size:clamp(20px,2vw,24px);line-height:1.2}
+.sitename a{text-decoration:none}
+.sitename a:hover{text-decoration:underline;text-underline-offset:6px;
+  text-decoration-thickness:2px}
+.sitehead nav{display:flex;gap:24px;flex-wrap:wrap}
+.sitehead nav a{font-family:var(--sans);font-size:16px;font-weight:500;
+  color:var(--ink-2);text-decoration:none}
+.sitehead nav a:hover,.sitehead nav a[aria-current="page"]{color:var(--ink);
   text-decoration:underline;text-underline-offset:4px}
 
 /* ---------- masthead ---------- */
 header.top{border-bottom:1px solid var(--rule);margin-bottom:22px}
 .mast{display:flex;gap:24px;align-items:flex-end;flex-wrap:wrap;
-      padding:30px 0 18px}
+      padding:12px 0 18px}
 .mast h1{font-size:clamp(28px,3.4vw,42px);line-height:1.06;font-weight:600}
 .mast h1 .zh{font-weight:500}
 .mast > div:first-child{flex:1 1 100%;min-width:0}
 .mast p{margin:8px 0 0;color:var(--ink-2);font-size:17px;line-height:1.55}
-.mast .texts{margin-top:10px}
-.mast .texts a{white-space:nowrap;color:var(--ink);text-decoration-color:var(--ink-3);
+/* The texts the intro names link to their own repositories: ink, a quiet
+   underline that darkens on hover, never broken across a line. */
+.mast p a{white-space:nowrap;color:var(--ink);text-decoration-color:var(--ink-3);
   text-underline-offset:3px}
-.mast .texts a:hover{color:var(--accent)}
+.mast p a:hover{text-decoration-color:var(--ink)}
 .counts{margin-left:auto;display:flex;gap:22px;text-align:right}
 .counts div span{display:block;font-family:var(--mono);font-size:19px;
                  color:var(--ink);font-variant-numeric:tabular-nums}
