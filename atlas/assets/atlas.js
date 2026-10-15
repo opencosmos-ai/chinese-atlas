@@ -283,7 +283,7 @@ function cardHtml(chr, compact){
     h += `</section>`;
   } else if (c.kind === 'pictograph'){
     h += `<section class="blk"><span class="lab">Built from</span>
-      <p class="legend">This is a pictograph – a single drawn form, not an assembly of parts.</p>
+      <p class="legend">This is a pictograph, not an assembly of parts.</p>
       </section>`;
   }
 
