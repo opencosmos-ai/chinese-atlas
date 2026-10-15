@@ -3,6 +3,17 @@
     "title": "Open Classical Chinese Character Atlas & Glossary",
     "domain": "chinese-atlas.opencosmos.ai",
     "project_base": "/chinese-atlas/",
+    "repo": "opencosmos-ai/chinese-atlas",
+    "family": {
+      "name": "OpenCosmos",
+      "url": "https://opencosmos.ai/",
+      "about": "A creative platform built on the recognition that we are not separate from the universe we inhabit.",
+      "nav": [
+        {"label": "Dialog", "href": "https://opencosmos.ai/dialog"},
+        {"label": "Library", "href": "https://opencosmos.ai/library"},
+        {"label": "Toolkit", "href": "https://studio.opencosmos.ai/docs/getting-started"}
+      ]
+    },
     "serving": [
       {
         "id": "tao-te-ching",

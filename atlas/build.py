@@ -31,6 +31,15 @@ FONTS = ("https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,40
          "0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500"
          "&family=Noto+Serif+TC:wght@400;500;600&display=swap")
 # One glyph, in the Song face, for the browser tab.
+# @opencosmos/ui's GitHubIcon, verbatim: the mark the family uses everywhere.
+GITHUB_MARK = ('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" '
+               'viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 '
+               '6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23'
+               '-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07'
+               '-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 '
+               '0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 '
+               '1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 '
+               '1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/></svg>')
 FAVICON = ("data:image/svg+xml," + urllib.parse.quote(
     "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>"
     "<rect width='64' height='64' rx='8' fill='#16171A'/>"
@@ -127,6 +136,8 @@ class Site:
         self.base, self.out = base, out
         self.title = cfg["site"]["title"]
         self.domain = cfg["site"].get("domain")
+        self.family = cfg["site"]["family"]
+        self.repo_url = f'https://github.com/{cfg["site"]["repo"]}'
         self.chars = {c["c"]: c for c in data["chars"]}
 
     def char_url(self, c):
@@ -145,6 +156,10 @@ class Site:
                  if self.domain else "")
         nav = [f'<a href="{self.base}"{" aria-current=page" if current == "atlas" else ""}>Atlas</a>',
                f'<a href="{self.base}glossary/"{" aria-current=page" if current == "glossary" else ""}>Glossary</a>']
+        # The site's name heads every page. It is the page's one h1 unless the
+        # page brings its own (an entry's term, the 404), then it keeps the look
+        # and steps out of the outline.
+        tag = "p" if "<h1" in main else "h1"
         self.write(rel, f"""<!doctype html>
 <html lang="en">
 <head>
@@ -158,7 +173,7 @@ class Site:
 <meta property="og:site_name" content="{e(self.title)}">
 {f'<link rel="canonical" href="{e(canon)}"><meta property="og:url" content="{e(canon)}">' if canon else ''}
 <meta name="theme-color" content="#E9E9E4" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#141518" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0B0C0E" media="(prefers-color-scheme: dark)">
 <meta name="atlas-base" content="{e(self.base)}">
 <meta name="atlas-data" content="{e(self.data_url)}">
 <meta name="atlas-glossary" content="{e(self.glossary_url)}">
@@ -171,14 +186,34 @@ class Site:
 </head>
 <body{body_attrs}>
 <div class="wrap">
-<div class="bar"><a class="home" href="{self.base}">{e(self.title)}</a>
+{self.family_bar()}
+<div class="sitehead"><{tag} class="sitename"><a href="{self.base}">{e(self.title)}</a></{tag}>
 <nav aria-label="Site">{''.join(nav)}</nav></div>
 {main}
 {self.footer()}
+{self.family_foot()}
 </div>
 </body>
 </html>
 """)
+
+    # The OpenCosmos family. Drawn the way @opencosmos/ui's Header and Footer
+    # draw it on opencosmos.ai; the links come from texts.json, so a change to
+    # that site's navigation is a data edit here.
+    def family_bar(self):
+        f = self.family
+        links = "".join(f'<a href="{e(n["href"])}">{e(n["label"])}</a>' for n in f["nav"])
+        return f"""<header class="family">
+  <a class="mark" href="{e(f["url"])}">{e(f["name"])}</a>
+  <nav aria-label="{e(f["name"])}">{links}</nav>
+  <a class="gh" href="{e(self.repo_url)}" target="_blank" rel="noopener noreferrer"
+     aria-label="GitHub (opens in a new tab)">{GITHUB_MARK}<span>GitHub</span></a>
+</header>"""
+
+    def family_foot(self):
+        f = self.family
+        return (f'<div class="family-foot"><p>Part of <a href="{e(f["url"])}">{e(f["name"])}</a>. '
+                f'{e(f["about"])}</p></div>')
 
     def footer(self):
         repos = " · ".join(
@@ -200,7 +235,7 @@ class Site:
   Ormsby and are dedicated <b>CC0</b>: no rights reserved.</p>
   <p><b>Where it comes from.</b> Every word here is built from the translations'
   own repositories: {repos}. Edit a glossary entry there, and this site follows.
-  The atlas itself: <a href="https://github.com/opencosmos-ai/chinese-atlas">opencosmos-ai/chinese-atlas</a>.</p>
+  The atlas itself: <a href="{e(self.repo_url)}">{e(self.cfg["site"]["repo"])}</a>.</p>
 </footer>"""
 
     def tabs(self):
@@ -256,11 +291,10 @@ class Site:
         return f"""<header class="top">
   <div class="mast">
     <div>
-      <h1>Atlas</h1>
-      <p>Every character in the classical Chinese texts OpenCosmos translates,
-      taken apart into the pieces it is built from, with what each piece means,
-      where the character appears, and how each translation renders it.</p>
-      <p class="texts">Serving {names}.</p>
+      <p>Every character in {names}, {e(self.family["name"])}&rsquo;s translations from
+      classical Chinese, taken apart into the pieces it is built from, with what
+      each piece means, where the character appears, and how each translation
+      renders it.</p>
     </div>
   </div>
   <div class="scope">
@@ -385,12 +419,10 @@ class Site:
             for r in recs)
         main = f"""<header class="top">
   <div class="mast"><div>
-    <h1>Glossary</h1>
-    <p>Each entry is the argument behind one ruling: what a term is, its oldest
-    forms, how the text uses it, and why the English reads as it does. Rulings
-    belong to their translation, so the same character can be ruled differently
-    in each.</p>
-    <p class="texts">Serving {self.serving_names()}.</p>
+    <p>Each entry is the argument behind one ruling in {self.serving_names()}:
+    what a term is, its oldest forms, how the text uses it, and why the English
+    reads as it does. Rulings belong to their translation, so the same character
+    can be ruled differently in each.</p>
   </div></div>
   <div class="scope">
     <div class="tabs" role="tablist" aria-label="Texts">{''.join(tabs)}</div>
