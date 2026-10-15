@@ -199,9 +199,7 @@ class Site:
   radical is a filing system; this is an analysis.</p>
   <p><b>What is ours, and what is not.</b> The Chinese is public domain by age.
   The English glosses, the translations, and the settled renderings are by Shalom
-  Ormsby and are dedicated <b>CC0</b>: no rights reserved. <span class="zh">說文</span>'s
-  definitions are never machine-rendered: an English line appears only where a
-  glossary entry has researched the character and translated it by hand.</p>
+  Ormsby and are dedicated <b>CC0</b>: no rights reserved.</p>
   <p><b>Where it comes from.</b> Every word here is built from the translations'
   own repositories: {repos}. Edit a glossary entry there, and this site follows.
   The atlas itself: <a href="https://github.com/opencosmos-ai/chinese-atlas">opencosmos-ai/chinese-atlas</a>.</p>

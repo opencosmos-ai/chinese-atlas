@@ -63,6 +63,22 @@ CJK Extension A and B, which is where 說文's older forms and components live.
 Every text colour meets WCAG AA (4.5:1) on the surface it sits on, in both
 themes.
 
+## Deferred
+
+**說文解字's definitions are hidden from the card** (2026-10-14, Shalom's call).
+Each character's 說文 line is Xu Shen's definition, c. 100 CE. It was shown in
+Chinese, with English only where a glossary entry had translated it by hand:
+three of 798. For a reader who does not read Chinese, the box was noise in the
+most prominent place on the card. The block is commented out in
+`atlas/assets/atlas.js`; the data still ships, so restoring it is uncommenting.
+
+**Before it returns it must be accessible to English-only readers**, for
+example: the structural half rendered in English from the parse the atlas
+already has ("from 彳, with 巠 for sound"), and the definitions translated, by
+hand or by glossary entries. The *Built from* tiles, which come from the same
+analysis, stay. **Revisit by 2026-12-14** —
+`.github/workflows/revisit-shuowen.yml` opens an issue that day.
+
 ## Licence
 
 The atlas's code is MIT (`LICENSE`). The content it publishes comes from the

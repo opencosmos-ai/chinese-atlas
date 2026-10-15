@@ -287,17 +287,26 @@ function cardHtml(chr, compact){
       </section>`;
   }
 
-  if (c.def){
-    h += `<section class="blk"><span class="lab">說文解字 · c. 100 CE</span>
-      <div class="swz">${esc(c.def)}</div>`;
-    // The English is hand-made, from a glossary entry; where no entry has
-    // translated the line yet, the Chinese stands alone.
-    if (c.defen) h += `<p class="swen">${esc(c.defen)}</p>`;
-    const facts = (c.hw && c.hw !== c.c ? `Filed under the older graph ${esc(c.hw)}. ` : '') +
-      (c.fq ? `Middle Chinese spelling ${esc(c.fq)}.` : '');
-    if (facts) h += `<p class="note">${facts.trim()}</p>`;
-    h += `</section>`;
-  }
+  /* HIDDEN, 2026-10-14 — Shalom's call. The 說文解字 block (Xu Shen's definition,
+     c. 100 CE) is commented out until it is accessible to readers who do not
+     read Chinese. 795 of 798 lines are untranslated, so for this atlas's reader
+     the box was Chinese they could not use, in the most prominent place on the
+     card. Revisit by 2026-12-14 (.github/workflows/revisit-shuowen.yml opens
+     an issue that day; README.md → Deferred). The data is still in data.json
+     (c.def, c.defen, c.hw, c.fq), so restoring it is uncommenting this block.
+
+  // if (c.def){
+  //   h += `<section class="blk"><span class="lab">說文解字 · c. 100 CE</span>
+  //     <div class="swz">${esc(c.def)}</div>`;
+  //   // The English is hand-made, from a glossary entry; where no entry has
+  //   // translated the line yet, the Chinese stands alone.
+  //   if (c.defen) h += `<p class="swen">${esc(c.defen)}</p>`;
+  //   const facts = (c.hw && c.hw !== c.c ? `Filed under the older graph ${esc(c.hw)}. ` : '') +
+  //     (c.fq ? `Middle Chinese spelling ${esc(c.fq)}.` : '');
+  //   if (facts) h += `<p class="note">${facts.trim()}</p>`;
+  //   h += `</section>`;
+  // }
+  */
 
   if (compact){
     h += `<a class="open" href="${charUrl(c.c)}">Open ${esc(c.c)} in the atlas →</a>`;
