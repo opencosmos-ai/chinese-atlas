@@ -421,8 +421,9 @@ function cardHtml(chr, compact){
 
   /* HIDDEN, 2026-10-14 — Shalom's call. The 說文解字 block (Xu Shen's definition,
      c. 100 CE) is commented out until it is accessible to readers who do not
-     read Chinese. 795 of 798 lines are untranslated, so for this atlas's reader
-     the box was Chinese they could not use, in the most prominent place on the
+     read Chinese. Only the few characters whose glossary entry translates
+     their line have English, so for this atlas's reader nearly every
+     box was Chinese they could not use, in the most prominent place on the
      card. Revisit by 2026-12-14 (.github/workflows/revisit-shuowen.yml opens
      an issue that day; README.md → Deferred). The data is still in data.json
      (c.def, c.defen, c.hw, c.fq), so restoring it is uncommenting this block.
