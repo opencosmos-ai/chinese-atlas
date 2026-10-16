@@ -40,6 +40,15 @@
   --pho:#546473;         /* slate — quieter, because sound carries no meaning */
   --pho-soft:#DCE2E7;
   --lock:#2F6A4A;         /* jade — a rendering that is settled */
+  /* The OpenCosmos blue — the family's primary, kept to the family's chrome:
+     the GitHub-marked buttons' hover, focus rings, and the links home. Never in
+     the atlas's content, where every colour already means something. Dark mode
+     is opencosmos.ai's own #0099ff; light deepens it to #0069B4, which holds
+     4.5:1 as text on every light surface (#0099ff manages 2.5). */
+  --oc-blue:#0069B4;
+  /* The hover of the buttons that carry the GitHub mark. Light: ink, like every
+     button here. Dark: the blue with black text, as opencosmos.ai's own does. */
+  --family-hover:var(--ink); --family-hover-ink:var(--paper);
   --shadow:0 1px 2px rgba(20,20,24,.06),0 8px 24px -12px rgba(20,20,24,.18);
   /* The rare face goes first in every stack, not only --han: a rare graph
      turns up in mono labels and serif prose too (𪞶 in a "filed under" tag),
@@ -67,6 +76,7 @@
     --heat:#E07E6C; --heat-rgb:224,126,108; --heat-soft:#3A2724;
     --pho:#93A9BC; --pho-soft:#232B33;
     --lock:#7FBF95;
+    --oc-blue:#0099FF; --family-hover:#0099FF; --family-hover-ink:#000;
     --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
   }
 }
@@ -78,6 +88,7 @@
   --heat:#E07E6C; --heat-rgb:224,126,108; --heat-soft:#3A2724;
   --pho:#93A9BC; --pho-soft:#232B33;
   --lock:#7FBF95;
+  --oc-blue:#0099FF; --family-hover:#0099FF; --family-hover-ink:#000;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
 }
 *{box-sizing:border-box}
@@ -94,7 +105,9 @@ a{color:inherit}
   font-family:var(--mono);font-size:12.5px;letter-spacing:.1em;
   text-transform:uppercase;color:var(--ink-3);
 }
-.wrap{max-width:1400px;margin:0 auto;padding:0 24px 72px}
+/* The page's side margins grow with the window — 24px at their narrowest, 64px
+   on a wide screen — so the content never crowds the viewport's edge. */
+.wrap{max-width:1400px;margin:0 auto;padding:0 clamp(24px,4.5vw,64px) 72px}
 @media(max-width:600px){.wrap{padding:0 16px 56px}}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);
     white-space:nowrap}
@@ -108,17 +121,18 @@ a{color:inherit}
 @media(min-width:1024px){.family{min-height:80px}}
 .family .mark{font-size:20px;font-weight:700;letter-spacing:-.5px;line-height:1.2;
   color:var(--ink);text-decoration:none}
+.family .mark:hover{color:var(--oc-blue)}   /* the way home, in the family's blue */
 .family nav{display:flex;flex-wrap:wrap;gap:8px 32px;margin-left:auto}
 .family nav a{font-size:14px;font-weight:500;color:var(--ink-2);text-decoration:none;
   transition:color .2s}
-.family nav a:hover{color:var(--ink)}
+.family nav a:hover{color:var(--oc-blue)}   /* Dialog · Library · Toolkit, in the family's blue */
 /* The family's outline button, small size: a 1px rule that fills on hover,
    the mark nudging right. It fills with ink, as the atlas's pressed buttons do. */
 .family .gh{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;
   border:1px solid var(--rule);border-radius:6px;font-size:12px;font-weight:500;
   color:var(--ink);text-decoration:none;transition:background .2s,color .2s,border-color .2s}
 .family .gh svg{flex:none;transition:transform .3s}
-.family .gh:hover{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.family .gh:hover{background:var(--family-hover);border-color:var(--family-hover);color:var(--family-hover-ink)}
 .family .gh:hover svg{transform:translateX(4px)}
 @media(prefers-reduced-motion:reduce){.family .gh,.family .gh svg{transition:none}
   .family .gh:hover svg{transform:none}}
@@ -150,7 +164,7 @@ a{color:inherit}
   :root:not([data-theme="light"]) .theme .i-moon{display:none}
 }
 .family-foot a{color:var(--ink);font-weight:500;text-decoration:none}
-.family-foot a:hover{text-decoration:underline;text-underline-offset:3px}
+.family-foot a:hover{color:var(--oc-blue);text-decoration:underline;text-underline-offset:3px}
 
 /* ---------- the site's name, and its two rooms ----------
    Under the family bar: the name as the page's title, Atlas and Glossary
@@ -165,14 +179,13 @@ a{color:inherit}
   line-height:1.06;font-weight:600;letter-spacing:-.03em;text-wrap:balance}
 /* Where the page has its own title (an entry's term), the name steps back. */
 p.sitename{font-size:clamp(20px,2vw,24px);line-height:1.2}
-.sitename a{text-decoration:none}
-.sitename a:hover{text-decoration:underline;text-underline-offset:6px;
-  text-decoration-thickness:2px}
 .sitehead nav{display:flex;gap:24px;flex-wrap:wrap}
 .sitehead nav a{font-family:var(--sans);font-size:16px;font-weight:500;
   color:var(--ink-2);text-decoration:none}
-.sitehead nav a:hover,.sitehead nav a[aria-current="page"]{color:var(--ink);
+.sitehead nav a[aria-current="page"]{color:var(--ink);
   text-decoration:underline;text-underline-offset:4px}
+/* Hover in the family's blue, like the OpenCosmos links above and below. */
+.sitehead nav a:hover{color:var(--oc-blue);text-decoration:underline;text-underline-offset:4px}
 
 /* ---------- masthead ---------- */
 header.top{border-bottom:1px solid var(--rule);margin-bottom:22px}
@@ -197,7 +210,9 @@ header.top{border-bottom:1px solid var(--rule);margin-bottom:22px}
 .counts .kbtn .lab{font-size:12.5px;color:var(--ink-3)}
 .kbtn .lab::after{content:" \25BE"}
 .kbtn[aria-expanded="true"] .lab::after{content:" \25B4"}
-.kbtn:hover .lab,.kbtn[aria-expanded="true"] .lab{color:var(--ink)}
+.kbtn[aria-expanded="true"] .lab{color:var(--ink)}
+/* It is a control, so its hover is the family's blue — number and label both. */
+.counts .kbtn:hover span{color:var(--oc-blue)}
 .kbtn:disabled{cursor:default}
 .kbtn:disabled .lab::after{content:none}
 
@@ -208,7 +223,7 @@ header.top{border-bottom:1px solid var(--rule);margin-bottom:22px}
 .tabs [role="tab"]{border:0;border-bottom:2px solid transparent;border-radius:0;
   margin-bottom:-1px;padding:10px 14px 9px;font-size:13px;letter-spacing:.08em;
   color:var(--ink-2);background:none}
-.tabs [role="tab"]:hover{color:var(--ink);border-bottom-color:var(--ink-3)}
+.tabs [role="tab"]:hover{color:var(--oc-blue);border-bottom-color:var(--oc-blue)}   /* the family's blue, as the nav */
 .tabs [role="tab"][aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
 .tabs .soonmark{margin-left:7px;font-size:12px;color:var(--ink-3);letter-spacing:.06em}
 .tabs [role="tab"]{white-space:nowrap}
@@ -238,7 +253,7 @@ input[type=search]{
 input[type=search]::placeholder{color:var(--ink-3);opacity:1}
 @media(max-width:600px){input[type=search]{min-width:0;flex:1 1 100%}}
 input[type=search]:focus-visible,button:focus-visible,a:focus-visible,
-.cell:focus-visible,.part:focus-visible{outline:2px solid var(--accent);
+.cell:focus-visible,.part:focus-visible{outline:2px solid var(--oc-blue);
   outline-offset:2px}
 button{
   font-family:var(--mono);font-size:13px;letter-spacing:.06em;
@@ -431,7 +446,7 @@ section.blk > .lab{display:block;margin-bottom:8px;
 .hc.gd{border-color:var(--pho)}
 .hc.faded{border-style:dashed;border-color:var(--rule)}
 .hc[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:1px}
-.hc:focus-visible{outline:2px solid var(--heat);outline-offset:1px}
+.hc:focus-visible{outline:2px solid var(--oc-blue);outline-offset:1px}
 .hkey{display:flex;align-items:center;gap:7px;margin-top:10px;flex-wrap:wrap}
 .hramp{display:flex;gap:2px}
 .hramp i{width:15px;height:11px;border-radius:1px;display:block}
@@ -524,7 +539,7 @@ footer a{color:var(--ink-2);text-underline-offset:3px}
   text-transform:none;color:var(--ink);cursor:pointer;
   transition:background .2s,color .2s,border-color .2s}
 .sbtn svg{flex:none}
-button.sbtn:hover{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+button.sbtn:hover{background:var(--family-hover);border-color:var(--family-hover);color:var(--family-hover-ink)}
 .entry-room .sbtn{margin-top:22px}
 /* The footer's general button, centred on the page. */
 .suggest-general{display:flex;justify-content:center}
@@ -585,7 +600,7 @@ button.sd-copy:hover{color:var(--ink);border-color:var(--ink-3)}
 select{font-family:var(--mono);font-size:13px;letter-spacing:.06em;text-transform:uppercase;
   color:var(--ink-2);background:var(--card);border:1px solid var(--rule);border-radius:2px;
   padding:7px 8px}
-select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select:focus-visible{outline:2px solid var(--oc-blue);outline-offset:2px}
 .seg{display:flex}
 .gcontrols input[type=search]{min-width:320px}
 @media(max-width:600px){.gcontrols input[type=search]{min-width:0}}

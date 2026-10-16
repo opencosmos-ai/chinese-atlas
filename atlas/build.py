@@ -250,7 +250,7 @@ try {{ var t = localStorage.getItem("atlas-theme");
 <body{body_attrs}>
 <div class="wrap">
 {self.family_bar()}
-<div class="sitehead"><{tag} class="sitename"><a href="{self.base}">{e(self.title)}</a></{tag}>
+<div class="sitehead"><{tag} class="sitename">{e(self.title)}</{tag}>
 <nav aria-label="Site">{''.join(nav)}</nav></div>
 {main}
 {self.footer()}
