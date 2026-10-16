@@ -31,6 +31,10 @@ FONTS = ("https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,40
          "0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500"
          "&family=Noto+Serif+TC:wght@400;500;600&display=swap")
 # One glyph, in the Song face, for the browser tab.
+# The light/dark switch's two icons (Lucide's sun and moon, as @opencosmos/ui uses).
+THEME_ICONS = ('<svg class="i-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>'
+               '<svg class="i-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>')
+
 # @opencosmos/ui's GitHubIcon, verbatim: the mark the family uses everywhere.
 GITHUB_MARK = ('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" '
                'viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 '
@@ -151,6 +155,61 @@ class Site:
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(text, encoding="utf-8")
 
+    # "Suggest an edit": the prompt a reader pastes into an AI assistant. One
+    # template for every page that offers it, and the same words as the
+    # "With an AI assistant" section of the text's CONTRIBUTING.md. A text
+    # offers it when texts.json names its skill (site.serving[].suggest).
+    def suggest_data(self):
+        texts = {}
+        for sv in self.cfg["site"].get("serving", []):
+            if not sv.get("suggest") or sv["id"] not in self.exports:
+                continue
+            repo = sv["repo"]
+            # One line per sentence, unwrapped: the card is narrow, and an
+            # assistant reads it the same either way.
+            texts[sv["id"]] = {"repo": repo, "name": sv["name"], "prompt": "\n".join([
+                "I'd like to suggest an edit to a Chinese character on the OpenCosmos "
+                "Character Atlas.",
+                "",
+                "Character: %SUBJECT%",
+                "My suggestion: [what's wrong or missing, and what you'd put instead, "
+                "in your own words]",
+                "",
+                "Please help me contribute it to the translation it comes from:",
+                f"1. Fork and clone https://github.com/{repo} "
+                f"(gh repo fork {repo} --clone).",
+                f"2. Read CONTRIBUTING.md and {sv['suggest']}, and follow "
+                "the skill step by step.",
+                "3. Check my suggestion against every line the character stands in, "
+                "and tell me what you find before you change anything.",
+                "4. Show me the exact change and the pull request or issue text, "
+                "and ask me before you push, open, or post anything."])}
+            # The general prompt carries no context at all, so it works pasted
+            # anywhere — the footer here, a landing page, a Substack post. The
+            # same words as CONTRIBUTING.md's "From anywhere".
+            if sv.get("contribute"):
+                texts[sv["id"]]["general"] = "\n".join([
+                    f"I'd like to suggest an edit to the {sv['name']}, the OpenCosmos "
+                    f"translation of the {sv['tab']}.",
+                    "",
+                    "My suggestion: [what struck you — a line that reads wrong, a word "
+                    "you'd change, a typo, anything — in your own words. Mention the "
+                    "chapter if you know it.]",
+                    "",
+                    "Please help me contribute it:",
+                    f"1. Clone https://github.com/{repo}. If it becomes a pull "
+                    "request, fork it then.",
+                    f"2. Read CONTRIBUTING.md and {sv['contribute']}, and follow "
+                    "the skill step by step.",
+                    "3. Find where my suggestion belongs, check it against the book, "
+                    "and tell me what you find before you change anything.",
+                    "4. Show me the exact change and the pull request or issue text, "
+                    "and ask me before you push, open, or post anything."])
+        site = f"https://{self.domain}/" if self.domain else ""
+        blob = json.dumps({"site": site, "texts": texts, "mark": GITHUB_MARK},
+                          ensure_ascii=False)
+        return blob.replace("</", "<\\/")
+
     def page(self, rel, title, desc, main, body_attrs="", current=""):
         canon = (f"https://{self.domain}/{rel.removesuffix('index.html')}"
                  if self.domain else "")
@@ -178,6 +237,10 @@ class Site:
 <meta name="atlas-data" content="{e(self.data_url)}">
 <meta name="atlas-glossary" content="{e(self.glossary_url)}">
 <link rel="icon" href="{FAVICON}">
+<script>/* The reader's light/dark choice, applied before the page paints. */
+try {{ var t = localStorage.getItem("atlas-theme");
+  if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; }} catch (e) {{}}</script>
+<script type="application/json" id="suggest-data">{self.suggest_data()}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="{FONTS}">
@@ -213,7 +276,9 @@ class Site:
     def family_foot(self):
         f = self.family
         return (f'<div class="family-foot"><p>Part of <a href="{e(f["url"])}">{e(f["name"])}</a>. '
-                f'{e(f["about"])}</p></div>')
+                f'{e(f["about"])}</p>'
+                f'<button type="button" class="theme">{THEME_ICONS}'
+                f'<span class="theme-lab">Dark mode</span></button></div>')
 
     def footer(self):
         repos = " · ".join(
@@ -236,6 +301,7 @@ class Site:
   <p><b>Where it comes from.</b> Every word here is built from the translations'
   own repositories: {repos}. Edit a glossary entry there, and this site follows.
   The atlas itself: <a href="{e(self.repo_url)}">{e(self.cfg["site"]["repo"])}</a>.</p>
+  <div class="suggest-general"></div>
 </footer>"""
 
     def tabs(self):
@@ -358,16 +424,26 @@ class Site:
             body = "<h1>" + body[4:].replace("</h2>", "</h1>", 1)
         chars = "".join(dict.fromkeys(en["chars"] + en["covers"]))
         repo = t["repo"]
-        main = f"""<nav class="crumbs" aria-label="Breadcrumb" style="margin-top:22px">
-  <a href="{self.base}">Atlas</a> /
-  <a href="{self.base}glossary/?text={tid}">Glossary</a> /
-  {e(t["title"])} / <span class="zh">{e(en["term"])}</span></nav>
+        # Atlas and Glossary are the site head's links, just above; the crumb
+        # starts at the text, which opens the glossary scoped to it.
+        # "Suggest an edit" twice: at the top, where a reader sees it without
+        # scrolling, and at the end, where one who has read the argument is.
+        slot = (f'<div class="suggest-slot" data-tid="{e(tid)}" data-term="{e(en["term"])}" '
+                f'data-pinyin="{e(en["pinyin"])}" data-render="{e(plain(en["render"]))}" '
+                f'data-slug="{e(en["slug"])}"></div>')
+        main = f"""<div class="entry-head">
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a href="{self.base}glossary/?text={tid}">{e(t["title"])}</a> /
+  <span class="zh">{e(en["term"])}</span></nav>
+{slot}
+</div>
 <div class="entry-room" style="margin-top:0">
 <article>
   <div class="prose">{body}</div>
   <p class="source">This page is <a href="https://github.com/{e(repo)}/blob/main/{e(en["path"])}"><code>{e(en["path"])}</code></a>
   in <a href="https://github.com/{e(repo)}">{e(repo)}</a>, rendered as written.
   Edit it there, and this page follows.</p>
+  {slot}
 </article>
 <aside class="card" aria-label="The character, taken apart">
   <div class="card-in"><div class="chips" id="chips"></div><div id="card"></div></div>

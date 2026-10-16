@@ -41,16 +41,19 @@
   --pho-soft:#DCE2E7;
   --lock:#2F6A4A;         /* jade — a rendering that is settled */
   --shadow:0 1px 2px rgba(20,20,24,.06),0 8px 24px -12px rgba(20,20,24,.18);
-  --serif:"Spectral",Georgia,"Times New Roman",serif;
-  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  /* The rare face goes first in every stack, not only --han: a rare graph
+     turns up in mono labels and serif prose too (𪞶 in a "filed under" tag),
+     and a stack without it shows an empty box. Its unicode-range confines it
+     to the rare blocks, so it never touches Latin or a common character, and
+     the browser fetches it only when a page shows one. A face ahead of it that
+     merely claims a rare code point (some do, with an empty box) would stop
+     the browser before it got here. */
+  --serif:"Atlas Rare Han","Spectral",Georgia,"Times New Roman",serif;
+  --mono:"Atlas Rare Han","IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
   /* The OpenCosmos family's face (Tailwind's sans stack, as opencosmos.ai sets
      it). Only the family bar and footer line use it. */
-  --sans:ui-sans-serif,system-ui,sans-serif,"Apple Color Emoji","Segoe UI Emoji",
-         "Segoe UI Symbol","Noto Color Emoji";
-  /* The rare face goes first. Its unicode-range confines it to the rare blocks,
-     so it never touches a common character; but a face ahead of it that merely
-     claims a rare code point (some do, with an empty box) would stop the browser
-     before it got here. */
+  --sans:"Atlas Rare Han",ui-sans-serif,system-ui,sans-serif,"Apple Color Emoji",
+         "Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";
   --han:"Atlas Rare Han","Songti SC","Songti TC","Song Ti","Noto Serif TC",
         "Noto Serif CJK TC","Noto Serif CJK SC","Hiragino Mincho ProN","Yu Mincho",
         "SimSun",serif;
@@ -88,7 +91,7 @@ h1,h2,h3{text-wrap:balance;margin:0;font-weight:500;letter-spacing:-.012em}
 a{color:inherit}
 .zh{font-family:var(--han)}
 .lab{
-  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+  font-family:var(--mono);font-size:12.5px;letter-spacing:.1em;
   text-transform:uppercase;color:var(--ink-3);
 }
 .wrap{max-width:1400px;margin:0 auto;padding:0 24px 72px}
@@ -132,6 +135,20 @@ a{color:inherit}
   font-family:var(--sans);font-size:14px;line-height:1.5;color:var(--ink-2);
   text-align:center}
 .family-foot p{margin:0}
+/* The light/dark switch, kept quiet down here: icon and label, no outline. It
+   names the mode it switches to — a moon and "Dark mode" in light. */
+.family-foot .theme{display:inline-flex;align-items:center;gap:7px;margin-top:14px;
+  padding:6px 10px;border:0;border-radius:6px;background:transparent;
+  font-family:var(--sans);font-size:14px;font-weight:400;letter-spacing:0;
+  text-transform:none;color:var(--ink-2)}
+.family-foot .theme:hover{color:var(--ink);background:var(--sunk)}
+.theme .i-sun{display:none}
+:root[data-theme="dark"] .theme .i-sun{display:block}
+:root[data-theme="dark"] .theme .i-moon{display:none}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .theme .i-sun{display:block}
+  :root:not([data-theme="light"]) .theme .i-moon{display:none}
+}
 .family-foot a{color:var(--ink);font-weight:500;text-decoration:none}
 .family-foot a:hover{text-decoration:underline;text-underline-offset:3px}
 
@@ -177,7 +194,7 @@ header.top{border-bottom:1px solid var(--rule);margin-bottom:22px}
    control; everything else matches the counts beside it. */
 .kbtn{display:block;border:0;padding:0;background:transparent;text-align:right;
   color:inherit;font:inherit;letter-spacing:inherit;text-transform:none}
-.counts .kbtn .lab{font-size:10.5px;color:var(--ink-3)}
+.counts .kbtn .lab{font-size:12.5px;color:var(--ink-3)}
 .kbtn .lab::after{content:" \25BE"}
 .kbtn[aria-expanded="true"] .lab::after{content:" \25B4"}
 .kbtn:hover .lab,.kbtn[aria-expanded="true"] .lab{color:var(--ink)}
@@ -189,16 +206,18 @@ header.top{border-bottom:1px solid var(--rule);margin-bottom:22px}
 .scope .counts{padding-bottom:9px}
 .tabs{display:flex;gap:2px;flex-wrap:wrap}
 .tabs [role="tab"]{border:0;border-bottom:2px solid transparent;border-radius:0;
-  margin-bottom:-1px;padding:10px 14px 9px;font-size:11px;letter-spacing:.08em;
+  margin-bottom:-1px;padding:10px 14px 9px;font-size:13px;letter-spacing:.08em;
   color:var(--ink-2);background:none}
 .tabs [role="tab"]:hover{color:var(--ink);border-bottom-color:var(--ink-3)}
 .tabs [role="tab"][aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
-.tabs .soonmark{margin-left:7px;font-size:10px;color:var(--ink-3);letter-spacing:.06em}
+.tabs .soonmark{margin-left:7px;font-size:12px;color:var(--ink-3);letter-spacing:.06em}
 .tabs [role="tab"]{white-space:nowrap}
 @media(max-width:600px){
   .scope{gap:10px}
   .tabs{flex-wrap:nowrap;overflow-x:auto;max-width:100%;scrollbar-width:none}
-  .tabs [role="tab"]{padding:10px 10px 9px}
+  /* The larger tab type, tightened just enough that all three fit at phone width. */
+  .tabs [role="tab"]{padding:10px 6px 9px;letter-spacing:.03em}
+  .tabs .soonmark{margin-left:5px;letter-spacing:.02em}
 }
 .soon{background:var(--card);border:1px solid var(--rule);padding:28px 28px 24px;
   max-width:70ch}
@@ -222,7 +241,7 @@ input[type=search]:focus-visible,button:focus-visible,a:focus-visible,
 .cell:focus-visible,.part:focus-visible{outline:2px solid var(--accent);
   outline-offset:2px}
 button{
-  font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+  font-family:var(--mono);font-size:13px;letter-spacing:.06em;
   text-transform:uppercase;color:var(--ink-2);cursor:pointer;
   background:transparent;border:1px solid var(--rule);border-radius:2px;
   padding:7px 11px;
@@ -294,10 +313,14 @@ button[aria-pressed="true"]:not(.hc):not(.part){background:var(--ink);color:var(
 @media(max-width:980px){.card{position:static;max-height:none}}
 .card-in{padding:22px}
 @media(max-width:600px){.card-in{padding:18px 16px}}
-.hero{display:flex;gap:18px;align-items:flex-start;
+.hero{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:flex-start;
       border-bottom:1px solid var(--rule);padding-bottom:16px;margin-bottom:16px}
-.hero .big{font-family:var(--han);font-size:76px;line-height:.92;color:var(--ink)}
-.hero .meta{min-width:0}
+/* The term never breaks (百姓 is one word, not two stacked glyphs); the meta takes
+   the rest of the row, and drops below it only when that would leave it under
+   160px — a pair like 我 & 吾 on a phone. */
+.hero .big{flex:none;white-space:nowrap;font-family:var(--han);font-size:76px;line-height:.92;
+  color:var(--ink)}
+.hero .meta{flex:1 1 160px;min-width:0}
 .hero .meta .pin{font-family:var(--mono);font-size:14px;color:var(--accent)}
 .hero .meta .gloss{font-size:19px;line-height:1.25;margin-top:2px}
 .hero .meta .render{color:var(--ink-2);font-size:14px;margin-top:5px;
@@ -318,7 +341,7 @@ button[aria-pressed="true"]:not(.hc):not(.part){background:var(--ink);color:var(
   padding:11px 14px 11px 14px;transition:background .12s,border-color .12s}
 .gbtn:hover{background:var(--accent-soft);border-color:var(--accent)}
 .gbtn:hover .arrow{transform:translateX(3px)}
-.gbtn .k{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+.gbtn .k{display:block;font-family:var(--mono);font-size:12.5px;letter-spacing:.1em;
   text-transform:uppercase;color:var(--accent)}
 .gbtn .t{display:block;font-size:16px;line-height:1.3;margin-top:3px}
 .gbtn .t .zh{font-size:18px}
@@ -341,7 +364,7 @@ button[aria-pressed="true"]:not(.hc):not(.part){background:var(--ink);color:var(
   border-top:2px solid var(--ink);font-size:17px;font-weight:600}
 .txhead .zh{font-weight:500;color:var(--ink-2)}
 .tx > section.blk:first-of-type{margin-top:14px}
-.tag{font-family:var(--mono);font-size:10px;letter-spacing:.07em;
+.tag{font-family:var(--mono);font-size:12px;letter-spacing:.07em;
   text-transform:uppercase;padding:2px 6px;border:1px solid var(--rule);
   border-radius:2px;color:var(--ink-3)}
 .tag.lock{color:var(--lock);border-color:var(--lock)}
@@ -440,7 +463,7 @@ section.blk > .lab{display:block;margin-bottom:8px;
 .ent .go{color:var(--accent)}
 
 footer{border-top:1px solid var(--rule);margin-top:40px;padding-top:18px;
-  color:var(--ink-3);font-size:13px;line-height:1.6;max-width:78ch}
+  color:var(--ink-3);font-size:13px;line-height:1.6}
 footer b{color:var(--ink-2);font-weight:500}
 footer a{color:var(--ink-2);text-underline-offset:3px}
 
@@ -451,7 +474,7 @@ footer a{color:var(--ink-2);text-underline-offset:3px}
   .entry-room{grid-template-columns:1fr;gap:24px}
   .entry-room > aside{order:-1}
 }
-.crumbs{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+.crumbs{font-family:var(--mono);font-size:12.5px;letter-spacing:.1em;
   text-transform:uppercase;color:var(--ink-3);margin-bottom:14px}
 .crumbs a{color:var(--ink-2);text-decoration:none}
 .crumbs a:hover{color:var(--ink);text-decoration:underline}
@@ -481,7 +504,7 @@ footer a{color:var(--ink-2);text-underline-offset:3px}
 .tbl{overflow-x:auto;margin:16px 0}
 .prose table{border-collapse:collapse;font-size:15px;line-height:1.45;
   min-width:100%}
-.prose th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+.prose th{font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;
   text-transform:uppercase;color:var(--ink-3);font-weight:500;text-align:left;
   border-bottom:1px solid var(--ink-3);padding:6px 10px 6px 0;vertical-align:bottom}
 .prose td{border-bottom:1px solid var(--rule);padding:8px 10px 8px 0;
@@ -492,7 +515,54 @@ footer a{color:var(--ink-2);text-underline-offset:3px}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .chips button{font-family:var(--han);font-size:20px;text-transform:none;
   letter-spacing:0;padding:3px 10px;color:var(--ink)}
-.open{display:inline-block;margin-top:16px;font-family:var(--mono);font-size:11px;
+/* "Suggest an edit": the family's outline button with its GitHub mark, filling
+   with ink on hover, as the header's GitHub button does. It opens a dialog, so
+   the card's layout never moves. */
+.sbtn{display:inline-flex;align-items:center;gap:8px;height:36px;margin-top:16px;
+  padding:0 14px;border:1px solid var(--rule);border-radius:6px;background:transparent;
+  font-family:var(--sans);font-size:14px;font-weight:500;letter-spacing:0;
+  text-transform:none;color:var(--ink);cursor:pointer;
+  transition:background .2s,color .2s,border-color .2s}
+.sbtn svg{flex:none}
+button.sbtn:hover{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.entry-room .sbtn{margin-top:22px}
+/* The footer's general button, centred on the page. */
+.suggest-general{display:flex;justify-content:center}
+.suggest-general .sbtn{margin-top:26px}   /* 40px from the text above, as from the rule below */
+/* On the card, the button sits at the right edge of its own row. */
+.sugrow{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin:28px 0}
+.sugrow .sbtn{margin-top:0}   /* 28px each side; the next section's 20px collapses into it */
+/* An entry page's first row: where you are, and the way to propose a change. */
+.entry-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;
+  gap:10px 24px;margin:22px 0 14px}
+.entry-head .crumbs{margin:0}
+.entry-head .sbtn{margin-top:0}
+/* The dialog. Text at reading size; the prompt in a box with its copy button
+   at the top right. */
+.sdialog{width:calc(100% - 32px);max-width:640px;max-height:calc(100vh - 48px);padding:0;
+  border:1px solid var(--rule);border-radius:8px;background:var(--card);color:var(--ink);
+  box-shadow:var(--shadow)}
+.sdialog::backdrop{background:rgba(10,11,13,.55)}
+.sd-in{position:relative;padding:28px 28px 24px}
+@media(max-width:600px){.sd-in{padding:22px 18px 20px}}
+.sd-in h2{font-size:24px;line-height:1.2;font-weight:600;margin:0 40px 12px 0}
+.sd-in p{margin:0 0 10px;font-size:16px;line-height:1.55;color:var(--ink-2)}
+.sd-close{position:absolute;top:14px;right:14px;width:36px;height:36px;padding:0;border:0;
+  border-radius:6px;font-family:var(--sans);font-size:24px;line-height:1;letter-spacing:0;
+  color:var(--ink-2);background:transparent}
+.sd-close:hover{color:var(--ink);background:var(--sunk)}
+.sd-prompt{position:relative;margin-top:16px}
+.sd-prompt pre{margin:0;padding:14px 52px 14px 16px;background:var(--sunk);
+  border:1px solid var(--rule);border-radius:6px;font-family:var(--mono);font-size:13px;
+  line-height:1.6;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere}
+.sd-copy{position:absolute;top:8px;right:8px;width:34px;height:34px;padding:0;
+  display:flex;align-items:center;justify-content:center;border:1px solid var(--rule);
+  border-radius:6px;background:var(--card);color:var(--ink-2)}
+button.sd-copy:hover{color:var(--ink);border-color:var(--ink-3)}
+.sd-acts{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:16px}
+.sd-acts a{font-family:var(--sans);font-size:15px;color:var(--ink-2);text-underline-offset:3px}
+.sd-acts a:hover{color:var(--ink)}
+.open{display:inline-block;margin-top:16px;font-family:var(--mono);font-size:13px;
   letter-spacing:.06em;text-transform:uppercase;color:var(--accent);
   text-decoration:none}
 .open:hover{text-decoration:underline;text-underline-offset:4px}
@@ -512,7 +582,7 @@ footer a{color:var(--ink-2);text-underline-offset:3px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
 /* ---------- the glossary: a list to scan, a preview to read ---------- */
-select{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+select{font-family:var(--mono);font-size:13px;letter-spacing:.06em;text-transform:uppercase;
   color:var(--ink-2);background:var(--card);border:1px solid var(--rule);border-radius:2px;
   padding:7px 8px}
 select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
