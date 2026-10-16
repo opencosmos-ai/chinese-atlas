@@ -18,6 +18,128 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, m =>
 const charUrl = c => BASE + encodeURIComponent(c) + '/';
 const entryUrl = (tid, slug) => BASE + 'glossary/' + tid + '/' + encodeURIComponent(slug) + '/';
 const SITE = 'Open Classical Chinese Character Atlas & Glossary';
+
+// ---------------------------------------------------------------- light / dark
+// The page follows the system until the reader chooses; the choice is theirs,
+// kept in this browser only. The head applies it before paint; this flips it.
+const darkNow = () => {
+  const t = document.documentElement.dataset.theme;
+  return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+};
+// The switch names the mode it switches to.
+function labelTheme(){
+  const lab = document.querySelector('.theme .theme-lab');
+  if (lab) lab.textContent = darkNow() ? 'Light mode' : 'Dark mode';
+}
+labelTheme();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', labelTheme);
+document.addEventListener('click', e => {
+  if (!e.target.closest('.theme')) return;
+  const next = darkNow() ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('atlas-theme', next); } catch {}
+  labelTheme();
+  window.dispatchEvent(new Event('atlas-theme'));   // the heat map's numbers recolour
+});
+
+// ---------------------------------------------------------------- suggest an edit
+// A prompt a reader pastes into an AI assistant, with the character or term
+// filled in. The template is build.py's (one per text that names a skill in
+// texts.json), so the card, the glossary and CONTRIBUTING.md say the same words.
+// A button opens it in a dialog, so the card's layout never moves. A ruling goes
+// to an issue, not a PR; the skill decides, and the fallback link opens the
+// template that fits.
+const SUGGEST = JSON.parse((el('suggest-data') || {}).textContent || '{}');
+const siteUrl = () => SUGGEST.site || location.origin + BASE;
+const ICON_COPY = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const ICON_DONE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+function suggestHtml(tid, head, subject, issueTitle, template, label){
+  if (!(SUGGEST.texts || {})[tid]) return '';
+  if (subject === null)   // the general prompt: no character, no context
+    return `<button type="button" class="sbtn" data-tid="${esc(tid)}" data-general="1"
+      >${SUGGEST.mark || ''}<span>${esc(label || 'Suggest an edit')}</span></button>`;
+  return `<button type="button" class="sbtn" data-tid="${esc(tid)}" data-head="${esc(head)}"
+    data-subject="${esc(subject)}" data-issue="${esc(issueTitle)}" data-template="${esc(template)}"
+    >${SUGGEST.mark || ''}<span>${esc(label || 'Suggest an edit')}</span></button>`;
+}
+function charSuggest(c, tid, label){
+  // A character with a glossary ruling is argued in an issue; the rest are gloss gaps.
+  const r = c.t[tid] || {};
+  const ruled = r.lock || (r.entries || []).length;
+  return suggestHtml(tid, c.c, `${c.c} — ${siteUrl()}${c.c}/`, `${c.c} (${c.p || ''}) — `,
+    ruled ? 'rendering-proposal.md' : 'gloss-gap.md', label);
+}
+function entrySuggest(tid, term, pinyin, render, slug){
+  return suggestHtml(tid, term,
+    `${term} (${pinyin} — ${render}), its glossary entry — ${siteUrl()}glossary/${tid}/${slug}/`,
+    `${term} (${pinyin} — ${render}): proposed rendering `, 'rendering-proposal.md');
+}
+// One dialog, filled from whichever button opened it.
+let suggestDialog = null;
+function openSuggest(d){
+  const s = SUGGEST.texts[d.tid];
+  const general = !!d.general;
+  if (!suggestDialog){
+    suggestDialog = document.createElement('dialog');
+    suggestDialog.className = 'sdialog';
+    suggestDialog.setAttribute('aria-labelledby', 'sd-title');
+    document.body.appendChild(suggestDialog);
+    // A click on the backdrop (the dialog element itself, outside its box) closes it.
+    suggestDialog.addEventListener('click', e => { if (e.target === suggestDialog) suggestDialog.close(); });
+  }
+  const issue = general ? `https://github.com/${s.repo}/issues/new/choose`
+    : `https://github.com/${s.repo}/issues/new?template=${d.template}` +
+      `&title=${encodeURIComponent(d.issue)}`;
+  const prompt = general ? s.general : s.prompt.replace('%SUBJECT%', d.subject);
+  suggestDialog.innerHTML = `<div class="sd-in">
+    <button type="button" class="sd-close" aria-label="Close">&times;</button>
+    <h2 id="sd-title">Suggest an edit to ${general ? esc('the ' + s.name)
+      : `<span class="zh">${esc(d.head)}</span>`}</h2>
+    <p>${general ? 'A line that reads wrong, a word you would change, a typo — anything.'
+      : 'Something here thin, missing or wrong?'} Copy this prompt into an AI coding
+    assistant (Claude Code, or any that can run commands) and write your suggestion
+    where it says. The assistant ${general ? 'finds where it belongs, checks it'
+      : 'checks your idea'} against every line of the
+    ${esc(s.name)}, then helps you send it as a pull request or an issue.</p>
+    <p>It is a proposal: one person decides.</p>
+    <div class="sd-prompt"><pre>${esc(prompt)}</pre>
+      <button type="button" class="sd-copy" aria-label="Copy prompt" title="Copy prompt" autofocus>${ICON_COPY}</button></div>
+    <div class="sd-acts">
+      <a href="${issue}" target="_blank" rel="noopener">No assistant? Open an issue instead</a>
+      <a href="https://github.com/${s.repo}/blob/main/CONTRIBUTING.md" target="_blank"
+         rel="noopener">How contributing works</a></div></div>`;
+  suggestDialog.querySelector('.sd-close').onclick = () => suggestDialog.close();
+  const copy = suggestDialog.querySelector('.sd-copy'), pre = suggestDialog.querySelector('pre');
+  copy.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(pre.textContent);
+      copy.innerHTML = ICON_DONE; copy.setAttribute('aria-label', 'Copied');
+      copy.title = 'Copied';
+    } catch {   // no clipboard (an insecure origin, an old browser): select it instead
+      const r = document.createRange(); r.selectNodeContents(pre);
+      getSelection().removeAllRanges(); getSelection().addRange(r);
+    }
+    setTimeout(() => { copy.innerHTML = ICON_COPY; copy.setAttribute('aria-label', 'Copy prompt');
+                       copy.title = 'Copy prompt'; }, 2000);
+  };
+  suggestDialog.showModal();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('.sbtn');
+  if (b) openSuggest(b.dataset);
+});
+// The footer's general button, one per text that names a general skill.
+document.querySelectorAll('.suggest-general').forEach(sl => {
+  const ids = Object.keys(SUGGEST.texts || {}).filter(id => SUGGEST.texts[id].general);
+  sl.innerHTML = ids.map(id => suggestHtml(id, '', null, '', '',
+    ids.length > 1 ? `Suggest an edit · ${SUGGEST.texts[id].name}` : '')).join('');
+});
+// Entry pages are written by build.py; their slot is filled here.
+document.querySelectorAll('.suggest-slot').forEach(sl => {
+  sl.innerHTML = entrySuggest(sl.dataset.tid, sl.dataset.term, sl.dataset.pinyin,
+                              sl.dataset.render, sl.dataset.slug);
+});
+
 if (PAGE === 'glossary') return glossaryPage();
 if (PAGE !== 'atlas' && PAGE !== 'entry') return;   // index pages need no data
 const D = await (await fetch(DATA_URL)).json();
@@ -143,7 +265,7 @@ function heatSection(c, t, mode){
       align-items:center;gap:10px">Where it appears
       ${W ? `<button class="wtog" type="button" aria-pressed="${on}"
         title="${esc(W.name)}, ${esc(W.date)} — the oldest surviving copy of this text. A witness is a copy that testifies to what the text said at some point; it is not a source the text came from."
-        style="padding:3px 8px;font-size:10px">Oldest witness</button>` : ''}</span>` : ''}
+        style="padding:3px 8px;font-size:12px">Oldest witness</button>` : ''}</span>` : ''}
     <p class="legend" style="margin:0 0 10px">${r.n}&times;
       across ${r.chs.length} of ${N} ${unit}s${
         peak > 1 ? `, most often in ${unit} ${per.indexOf(peak)} (${peak}&times;)` : ''}</p>
@@ -286,6 +408,15 @@ function cardHtml(chr, compact){
     h += `<section class="blk"><span class="lab">Built from</span>
       <p class="legend">This is a pictograph, not an assembly of parts.</p>
       </section>`;
+  }
+
+  // After the gloss and the parts — the two things a reader is most likely to
+  // want to correct — and before the map.
+  if (!compact){
+    const offer = present.filter(t => (SUGGEST.texts || {})[t.id]);
+    if (offer.length)
+      h += `<div class="sugrow">${offer.map(t => charSuggest(c, t.id,
+        offer.length > 1 ? `Suggest an edit · ${t.title}` : '')).join('')}</div>`;
   }
 
   /* HIDDEN, 2026-10-14 — Shalom's call. The 說文解字 block (Xu Shen's definition,
@@ -444,6 +575,9 @@ function show(chr){
   card.innerHTML = cardHtml(chr, false);
   wireCard(card, chr, () => show(chr));
 }
+// Each heat cell's number is black or white for its own fill (textOn), so a
+// change of theme redraws the card.
+window.addEventListener('atlas-theme', () => { if (sel) show(sel); });
 
 function go(chr, push){
   if (!chr || !byChar[chr]) return;
@@ -647,7 +781,8 @@ async function glossaryPage(){
       ${r.aside.length ? `<section class="blk"><span class="lab">Set aside</span>
         <div class="asides">${r.aside.map(w => `<span class="aside">${esc(w)}</span>`).join('')}</div></section>` : ''}
       <section class="blk gp-prose prose">${r.lock}${r.lead}</section>
-      ${single ? `<a class="open" href="${charUrl(r.chars[0])}">Open ${esc(r.chars[0])} in the atlas →</a>` : ''}`;
+      ${single ? `<a class="open" href="${charUrl(r.chars[0])}">Open ${esc(r.chars[0])} in the atlas →</a>` : ''}
+      ${entrySuggest(r.tid, r.term, r.pinyin, r.render, r.slug)}`;
   }
 
   function draw(){

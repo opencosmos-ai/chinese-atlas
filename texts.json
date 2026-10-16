@@ -20,7 +20,9 @@
         "name": "Open Tao Te Ching",
         "tab": "Tao Te Ching",
         "title_zh": "道德經",
-        "repo": "opencosmos-ai/taoteching"
+        "repo": "opencosmos-ai/taoteching",
+        "suggest": "process/skills/suggest-edit/SKILL.md",
+        "contribute": "process/skills/contribute/SKILL.md"
       },
       {
         "id": "i-ching",
