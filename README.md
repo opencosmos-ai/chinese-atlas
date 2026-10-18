@@ -34,10 +34,18 @@ iching/…/atlas-export.json ────────┼─▶ atlas/build.py �
 ```
 
 The export carries every character, every line, and every glossary entry
-verbatim: frontmatter and body. **To change what the atlas says, edit the
-glossary entry in the translation's repository and merge.** That repository's
-CI refuses a stale export, and a merge to its `main` signals this one to
-rebuild (`repository_dispatch`, with an hourly rebuild as a fallback).
+verbatim: frontmatter and body. **To change what the atlas says, change the
+file that owns it in the translation's repository, rebuild that repository's
+export, and merge.** Most of a card's English is not a glossary entry. For the
+Tao Te Ching, the English under most characters comes from the hand-kept lists
+`sources/word-glosses.yaml` and `sources/grammar-glosses.yaml`. The meanings of
+the *Built from* parts come from `sources/component-glosses.yaml`, and only a
+character with a glossary entry takes its English from `glossary/`.
+[`process/skills/suggest-edit/SKILL.md`](https://github.com/opencosmos-ai/taoteching/blob/main/process/skills/suggest-edit/SKILL.md)
+routes each part of a card to its file, says which are pull requests and which
+need an issue first, and gives the rebuild. That repository's CI refuses a PR
+whose export is stale, and a merge to its `main` signals this one to rebuild
+(`repository_dispatch`, with an hourly rebuild as a fallback).
 
 | File | What it is |
 |---|---|
