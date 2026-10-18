@@ -145,6 +145,12 @@ a{color:inherit}
   .family nav{order:3;width:100%;margin-left:0;gap:6px 20px}
 }
 /* The Footer's bottom bar: a rule, one centred line. */
+/* Hidden until a keyboard reaches it: the first stop on every page, past the
+   family bar and the site's own head to the content. */
+.skip{position:absolute;left:16px;top:-48px;z-index:10;padding:8px 14px;
+  background:var(--ink);color:var(--paper);font-family:var(--sans);font-size:15px;
+  border-radius:6px;text-decoration:none}
+.skip:focus{top:12px}
 .family-foot{border-top:1px solid var(--rule);margin-top:40px;padding:24px 0 0;
   font-family:var(--sans);font-size:14px;line-height:1.5;color:var(--ink-2);
   text-align:center}
@@ -498,11 +504,13 @@ footer a{color:var(--ink-2);text-underline-offset:3px}
 .prose a.zc{text-decoration:none;color:inherit}
 .prose a.zc:hover{color:var(--accent);text-decoration:underline;
   text-underline-offset:3px}
-.prose h1,.prose h2{font-size:clamp(24px,2.6vw,30px);line-height:1.15;margin:0 0 6px;
+/* An entry's title is its h1, and its sections step up to follow it (build.py
+   entry_page), so the outline never skips a level: h1 title, h2 section, h3 sub. */
+.prose h1{font-size:clamp(24px,2.6vw,30px);line-height:1.15;margin:0 0 6px;
   font-weight:600}
-.prose h1 .zh,.prose h2 .zh{font-weight:500}
-.prose h3{font-size:19px;line-height:1.3;margin:34px 0 8px;font-weight:600}
-.prose h4{font-size:17px;margin:24px 0 6px;font-weight:600}
+.prose h1 .zh{font-weight:500}
+.prose h2{font-size:19px;line-height:1.3;margin:34px 0 8px;font-weight:600}
+.prose h3,.prose h4{font-size:17px;margin:24px 0 6px;font-weight:600}
 .prose p{margin:0 0 14px}
 .prose ul,.prose ol{margin:0 0 14px;padding-left:22px}
 .prose li{margin:0 0 6px}
@@ -612,6 +620,8 @@ select:focus-visible{outline:2px solid var(--oc-blue);outline-offset:2px}
 .grow:first-child{border-top:0}
 .grow:hover{background:var(--sunk)}
 .grow[aria-current="true"]{background:var(--sunk);border-left-color:var(--accent)}
+/* --ink-3 on --sunk is 4.08:1; the selected row's labels step up to stay above 4.5. */
+.grow[aria-current="true"] .lab{color:var(--ink-2)}
 .grow .term{font-family:var(--han);font-size:30px;line-height:1;white-space:nowrap}
 .grow .gmid{min-width:0;display:flex;flex-direction:column;gap:1px}
 .grow .py{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.04em}

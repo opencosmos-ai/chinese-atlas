@@ -94,7 +94,7 @@ function openSuggest(d){
   suggestDialog.innerHTML = `<div class="sd-in">
     <button type="button" class="sd-close" aria-label="Close">&times;</button>
     <h2 id="sd-title">Suggest an edit to ${general ? esc('the ' + s.name)
-      : `<span class="zh">${esc(d.head)}</span>`}</h2>
+      : `<span class="zh" lang="zh-Hant">${esc(d.head)}</span>`}</h2>
     <p>${general ? 'A line that reads wrong, a word you would change, a typo — anything.'
       : 'Something here thin, missing or wrong?'} Copy this prompt into an AI coding
     assistant (Claude Code, or any that can run commands) and write your suggestion
@@ -207,7 +207,7 @@ function partBtn(ch, role, link){
   return `<${tag} class="part ${role}" ${attr}
       title="${on ? 'Showing every character built from ' + esc(ch) + ' — click to reset'
                   : 'Show every character built from ' + esc(ch)}" style="text-decoration:none">
-      <span class="pg">${esc(ch)}</span>
+      <span class="pg" lang="zh-Hant">${esc(ch)}</span>
       <span class="pt">${g[0] ? `<b>${esc(g[0])}</b>` : ''}
       <span${known || role === 'pho' ? '' : ' class="gap"'}>${esc(meaning)}</span></span>
     </${tag}>`;
@@ -228,11 +228,11 @@ function glossaryButtons(c, texts){
     h += `<a class="gbtn" href="${entryUrl(t.id, main)}">
       <span><span class="k">${many ? esc(t.title) + ' · ' : ''}Read the glossary entry${
         e.status === 'open' ? ' · open' : ''}</span>
-      <span class="t"><span class="zh">${esc(e.term)}</span> ${esc(e.pinyin)} — ${esc(e.render)}</span></span>
+      <span class="t"><span class="zh" lang="zh-Hant">${esc(e.term)}</span> ${esc(e.pinyin)} — ${esc(e.render)}</span></span>
       <span class="arrow" aria-hidden="true">→</span></a>`;
     const rest = slugs.filter(s => s !== main && E[s]);
     if (rest.length)
-      h += `<p class="also">Also in ${rest.map(s => `<a href="${entryUrl(t.id, s)}"><span class="zh">${
+      h += `<p class="also">Also in ${rest.map(s => `<a href="${entryUrl(t.id, s)}"><span class="zh" lang="zh-Hant">${
         esc(E[s].term)}</span> ${esc(E[s].pinyin)}</a>`).join(', ')}</p>`;
   }
   return h ? `<div class="gwrap">${h}</div>` : '';
@@ -348,7 +348,7 @@ function heatSection(c, t, mode){
     h += `<div class="oc">
       <div class="ref">${esc(t.abbr)} ${u} · LINE ${seq}${
         times > 1 ? `<span class="times">${times}× in this line</span>` : ''}</div>
-      <div class="zh">${zh}</div>
+      <div class="zh" lang="zh-Hant">${zh}</div>
       <div class="py2">${esc(L[1] || '')}</div>
       <div class="en">${esc(L[2] || '—')}</div>
       ${L[3] ? '' : '<div class="approx">line pairing approximate</div>'}
@@ -387,7 +387,7 @@ function cardHtml(chr, compact){
   if (!present.length && tf !== 'all' && TX[tf])
     meta += `<p class="legend">${esc(c.c)} does not appear in the ${esc(TX[tf].title)}.</p>`;
   if (tags.length) meta += `<div class="tags shared">${tags.join('')}</div>`;
-  let h = `<div class="hero"><div class="big">${esc(c.c)}</div>
+  let h = `<div class="hero"><div class="big" lang="zh-Hant">${esc(c.c)}</div>
     <div class="meta">${meta}</div></div>`;
   if (!compact) h += glossaryButtons(c, present);
 
@@ -401,7 +401,7 @@ function cardHtml(chr, compact){
       </div>`;
     if (!compact && compSel){
       const n = (BUILT[compSel] || []).filter(x => byChar[x[0]] && view(byChar[x[0]])).length;
-      h += `<p class="legend resetrow">The grid shows only the ${n} character${n === 1 ? '' : 's'} built from <span class="zh">${esc(compSel)}</span>.<button class="resetcomp" type="button">Reset</button></p>`;
+      h += `<p class="legend resetrow">The grid shows only the ${n} character${n === 1 ? '' : 's'} built from <span class="zh" lang="zh-Hant">${esc(compSel)}</span>.<button class="resetcomp" type="button">Reset</button></p>`;
     }
     h += `</section>`;
   } else if (c.kind === 'pictograph'){
@@ -453,7 +453,7 @@ function cardHtml(chr, compact){
       h += `<div class="txs"><span class="lab txs-lab">In the texts</span>`;
       for (const t of present)
         h += `<div class="tx"><div class="txhead">${esc(t.title)}
-          <span class="zh">${esc(t.title_zh)}</span></div>${heatSection(c, t, 'summary')}</div>`;
+          <span class="zh" lang="zh-Hant">${esc(t.title_zh)}</span></div>${heatSection(c, t, 'summary')}</div>`;
       h += `</div>`;
     }
   } else {
@@ -497,7 +497,7 @@ if (PAGE === 'entry'){
     card.innerHTML = cardHtml(cur, true);
     if (chips && chars.length > 1){
       chips.innerHTML = chars.map(c => `<button type="button" aria-pressed="${c === cur}"
-        data-c="${esc(c)}">${esc(c)}</button>`).join('');
+        data-c="${esc(c)}" lang="zh-Hant">${esc(c)}</button>`).join('');
       chips.querySelectorAll('button').forEach(b => b.onclick = () => { cur = b.dataset.c; render(); });
     }
   };
@@ -508,7 +508,9 @@ if (PAGE === 'entry'){
 // ---------------------------------------------------------------- the atlas
 const grid = el('grid'), card = el('card'), status = el('status');
 let sel = null, sort = 'freq';
-const filter = {q: '', lock: false, real: true, comp: null};
+// The data loads before any of this is wired, so a reader who typed while it
+// loaded, or whose browser restored the box on reload, already has a query.
+const filter = {q: el('q').value, lock: false, real: true, comp: null};
 
 function counts(){
   const ready = tf === 'all' || TX[tf];
@@ -551,7 +553,7 @@ function draw(){
     a.href = charUrl(c.c) + scopeQS();
     a.setAttribute('aria-current', sel === c.c ? 'true' : 'false');
     a.title = `${c.c} ${c.p || ''} — ${v.g || 'not yet glossed'} · ${v.n}×`;
-    a.innerHTML = `<span class="gl">${esc(c.c)}</span><span class="py">${esc(c.p || '')}</span>`;
+    a.innerHTML = `<span class="gl" lang="zh-Hant">${esc(c.c)}</span><span class="py">${esc(c.p || '')}</span>`;
     a.onclick = e => {
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
       e.preventDefault(); go(c.c, true);
@@ -642,7 +644,7 @@ function drawParts(){
       ` · builds ${n} character${n === 1 ? '' : 's'}`;
     return `<button type="button" class="pc" data-comp="${esc(p)}"
       aria-pressed="${compSel === p}" title="${esc(title)}"><span
-      class="pg">${esc(p)}</span><span class="py">${esc(g[0] || '')}</span></button>`;
+      class="pg" lang="zh-Hant">${esc(p)}</span><span class="py">${esc(g[0] || '')}</span></button>`;
   }).join('');
   const more = el('parts-more');
   more.hidden = ps.length <= PARTS_FIRST;
@@ -719,7 +721,8 @@ async function glossaryPage(){
   const fold = x => (x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const P = new URLSearchParams(location.search);
   const st = {
-    text: P.get('text') || 'all', q: P.get('q') || '', status: P.get('status') || 'all',
+    // A link's ?q= wins; otherwise keep whatever was typed while the data loaded.
+    text: P.get('text') || 'all', q: P.get('q') || el('gq').value, status: P.get('status') || 'all',
     form: P.get('form') || 'all', ch: P.get('ch') || '', sort: P.get('sort') || 'az',
     sel: P.get('sel') || '',
   };
@@ -767,7 +770,7 @@ async function glossaryPage(){
   function preview(r){
     if (!r){ prev.innerHTML = '<p class="legend">Nothing matches. Try another word, or clear a filter.</p>'; return; }
     const single = r.chars.length === 1;
-    prev.innerHTML = `<div class="hero gp-hero"><div class="big">${esc(r.term)}</div>
+    prev.innerHTML = `<div class="hero gp-hero"><div class="big" lang="zh-Hant">${esc(r.term)}</div>
       <div class="meta"><div class="pin">${esc(r.pinyin)}</div>
       <span class="lab">${esc(TITLES[r.tid] || r.tid)}</span>
       <div class="gloss">${esc(r.render)}</div>
@@ -776,7 +779,7 @@ async function glossaryPage(){
         r.chapters.length ? `<span class="tag">${r.chapters.length} chapter${r.chapters.length === 1 ? '' : 's'}</span>` : ''}</div>
       </div></div>
       <a class="gbtn" href="${entryUrl(r.tid, r.slug)}"><span><span class="k">Read the full entry</span>
-        <span class="t"><span class="zh">${esc(r.term)}</span> ${esc(r.pinyin)} — ${esc(r.render)}</span></span>
+        <span class="t"><span class="zh" lang="zh-Hant">${esc(r.term)}</span> ${esc(r.pinyin)} — ${esc(r.render)}</span></span>
         <span class="arrow" aria-hidden="true">→</span></a>
       ${r.aside.length ? `<section class="blk"><span class="lab">Set aside</span>
         <div class="asides">${r.aside.map(w => `<span class="aside">${esc(w)}</span>`).join('')}</div></section>` : ''}

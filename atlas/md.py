@@ -9,7 +9,7 @@ tests/test_md.py renders every real entry to keep that honest.
 Two things are added on the way through, both for the atlas's reader:
 
 - **Han characters are set in the Song face.** Runs of CJK are wrapped in
-  <span class="zh">, and each character that has an atlas page links to it.
+  <span class="zh" lang="zh-Hant">, and each character that has an atlas page links to it.
 - **Repository paths become links.** A code span naming a glossary entry links
   to that entry's page; any other path links to the file on GitHub.
 """
@@ -41,7 +41,7 @@ def _han(text, ctx):
         for c in m.group(0):
             url = ctx.char_url(c) if c in ctx.known_chars else None
             out.append(f'<a class="zc" href="{url}">{c}</a>' if url else c)
-        return f'<span class="zh">{"".join(out)}</span>'
+        return f'<span class="zh" lang="zh-Hant">{"".join(out)}</span>'
     return HAN_RUN.sub(run, text)
 
 

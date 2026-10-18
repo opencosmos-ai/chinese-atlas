@@ -65,6 +65,47 @@ class Site(unittest.TestCase):
             for mark in ("**", "`", "](", "\n## ", "\n| "):
                 self.assertNotIn(mark, text, f"{page.parent.name}: {mark!r}")
 
+    # -- what an agent, a crawler, or a screen reader receives -------------
+
+    def test_sitemap_and_llms_txt_list_every_page(self):
+        sitemap = (self.out / "sitemap.xml").read_text(encoding="utf-8")
+        llms = (self.out / "llms.txt").read_text(encoding="utf-8")
+        self.assertIn("Sitemap:", (self.out / "robots.txt").read_text(encoding="utf-8"))
+        for c in self.data["chars"]:
+            self.assertIn(f'/{urllib.parse.quote(c["c"])}/</loc>', sitemap, c["c"])
+        for tid, x in self.exports.items():
+            for en in x["entries"]:
+                path = f'/glossary/{tid}/{urllib.parse.quote(en["slug"])}/'
+                self.assertIn(path + "</loc>", sitemap, en["slug"])
+                self.assertIn(path + ")", llms, en["slug"])
+
+    def test_a_character_page_says_what_it_knows_without_script(self):
+        for c in self.data["chars"]:
+            page = (self.out / c["c"] / "index.html").read_text(encoding="utf-8")
+            card = page.split('id="card">', 1)[1].split("</aside>", 1)[0]
+            for tid, r in c["t"].items():
+                for slug in r.get("entries") or []:
+                    self.assertIn(f'/glossary/{tid}/{urllib.parse.quote(slug)}/', card, c["c"])
+                if r.get("chs"):
+                    self.assertIn(f'Appears {r["n"]} times', card, c["c"])
+
+    def test_every_page_has_one_main_and_marks_its_chinese(self):
+        # A screen reader voices Chinese only when it is marked as Chinese, so
+        # every element that sets Han text carries lang="zh-Hant".
+        for page in self.out.rglob("*.html"):
+            text = page.read_text(encoding="utf-8")
+            self.assertEqual(text.count("<main"), 1, page)
+            body = re.sub(r"(?s)<head>.*?</head>|<script.*?</script>", "", text)
+            unmarked = [m[0] for m in re.finditer(r'class="(zh|big|pg)"(?! lang="zh-Hant")', body)]
+            self.assertEqual(unmarked, [], page)
+
+    def test_entry_headings_never_skip_a_level(self):
+        for page in self.out.glob("glossary/*/*/index.html"):
+            prose = page.read_text(encoding="utf-8").split('<div class="prose">', 1)[1]
+            levels = [int(n) for n in re.findall(r"<h([1-6])\b", prose.split("</article>", 1)[0])]
+            for a, b in zip(levels, levels[1:]):
+                self.assertLessEqual(b - a, 1, f"{page.parent.name}: h{a} then h{b}")
+
 
 if __name__ == "__main__":
     unittest.main()
