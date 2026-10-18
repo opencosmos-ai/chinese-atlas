@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""build.py — the Open Classical Chinese Character Atlas, as a static site.
+"""build.py — the Open Classical Chinese Character Atlas & Glossary, as a static site.
 
     python3 -m atlas.build                 # sibling checkouts if present, else GitHub
     python3 -m atlas.build --remote        # always fetch from GitHub (what CI does)
