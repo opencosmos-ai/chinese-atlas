@@ -1,4 +1,6 @@
-# Open Classical Chinese Character Atlas
+# Open Classical Chinese Character Atlas & Glossary
+
+**Live at [chinese-atlas.opencosmos.ai](https://chinese-atlas.opencosmos.ai/)**, with the glossary at [/glossary/](https://chinese-atlas.opencosmos.ai/glossary/). Part of [OpenCosmos](https://opencosmos.ai/).
 
 Every character in the classical Chinese texts OpenCosmos translates, taken
 apart: the pieces it is built from and what each piece means, its analysis in
@@ -6,8 +8,9 @@ apart: the pieces it is built from and what each piece means, its analysis in
 translation renders it. Every glossary entry, in full, with the character beside
 it.
 
-**Now holding:** the [Tao Te Ching](https://github.com/opencosmos-ai/taoteching)
-(道德經). **Next:** the [I Ching](https://github.com/opencosmos-ai/iching) (易經).
+**Now holding:** the [Open Tao Te Ching](https://github.com/opencosmos-ai/taoteching)
+(道德經), announced on 2026-10-17 in
+[*Welcome to the Open Tao Te Ching*](https://shalomormsby.substack.com/p/welcome-to-the-open-tao-te-ching). **Next:** the [I Ching](https://github.com/opencosmos-ai/iching) (易經).
 
 ## Two rooms
 
