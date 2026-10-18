@@ -22,6 +22,26 @@ it.
   each. One index serves every text, scoped by the same tabs; search reaches
   the words each ruling sets aside, so "eternal" finds 常.
 
+## For agents, crawlers and screen readers
+
+Both rooms are drawn by `atlas.js`, and a reader that runs no script still
+gets the substance. Every character page carries its renderings, its glossary
+links, where it occurs, its parts and its 說文 line as plain HTML, which the
+script replaces on load. The glossary index lists every entry the same way, and
+entry pages are static throughout.
+
+- **`/llms.txt`**: what the site is, the data files and their fields, every
+  entry with a link to its Markdown source, and how to suggest a change.
+- **`/sitemap.xml`** and **`/robots.txt`**: every page.
+- **`/assets/data.json`** and **`/assets/glossary.json`**: everything the
+  pages are drawn from. They also work without the `?v=` the pages add.
+- **Entry pages** carry a schema.org `DefinedTerm` and a
+  `<link rel="alternate" type="text/markdown">` to the entry's source file.
+- **Every Han character is marked `lang="zh-Hant"`**, so a screen reader
+  voices it as Chinese rather than spelling a code point. `tests/test_build.py`
+  fails on any unmarked `zh`, `big` or `pg` element, and on any page without
+  exactly one `<main>`.
+
 ## How it stays true
 
 The atlas has **no content of its own**. Each translation repository publishes

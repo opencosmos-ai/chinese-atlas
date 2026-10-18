@@ -210,7 +210,7 @@ class Site:
                           ensure_ascii=False)
         return blob.replace("</", "<\\/")
 
-    def page(self, rel, title, desc, main, body_attrs="", current=""):
+    def page(self, rel, title, desc, main, body_attrs="", current="", head=""):
         canon = (f"https://{self.domain}/{rel.removesuffix('index.html')}"
                  if self.domain else "")
         nav = [f'<a href="{self.base}"{" aria-current=page" if current == "atlas" else ""}>Atlas</a>',
@@ -237,7 +237,7 @@ class Site:
 <meta name="atlas-data" content="{e(self.data_url)}">
 <meta name="atlas-glossary" content="{e(self.glossary_url)}">
 <link rel="icon" href="{FAVICON}">
-<script>/* The reader's light/dark choice, applied before the page paints. */
+{head}<script>/* The reader's light/dark choice, applied before the page paints. */
 try {{ var t = localStorage.getItem("atlas-theme");
   if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; }} catch (e) {{}}</script>
 <script type="application/json" id="suggest-data">{self.suggest_data()}</script>
@@ -248,11 +248,14 @@ try {{ var t = localStorage.getItem("atlas-theme");
 <script src="{self.js_url}" defer></script>
 </head>
 <body{body_attrs}>
+<a class="skip" href="#main">Skip to content</a>
 <div class="wrap">
 {self.family_bar()}
+<main id="main">
 <div class="sitehead"><{tag} class="sitename">{e(self.title)}</{tag}>
 <nav aria-label="Site">{''.join(nav)}</nav></div>
 {main}
+</main>
 {self.footer()}
 {self.family_foot()}
 </div>
@@ -275,10 +278,10 @@ try {{ var t = localStorage.getItem("atlas-theme");
 
     def family_foot(self):
         f = self.family
-        return (f'<div class="family-foot"><p>Part of <a href="{e(f["url"])}">{e(f["name"])}</a>. '
+        return (f'<aside class="family-foot" aria-label="{e(f["name"])}"><p>Part of <a href="{e(f["url"])}">{e(f["name"])}</a>. '
                 f'{e(f["about"])}</p>'
                 f'<button type="button" class="theme">{THEME_ICONS}'
-                f'<span class="theme-lab">Dark mode</span></button></div>')
+                f'<span class="theme-lab">Dark mode</span></button></aside>')
 
     def footer(self):
         repos = " · ".join(
@@ -290,7 +293,7 @@ try {{ var t = localStorage.getItem("atlas-theme");
   part carries meaning. A <strong style="color:var(--pho);font-weight:400">phonetic</strong>
   part was borrowed for its sound alone and means nothing here, which is why the
   two are coloured differently and never merged.</p>
-  <p><b>Where the analysis comes from.</b> <span class="zh">說文解字</span>
+  <p><b>Where the analysis comes from.</b> <span class="zh" lang="zh-Hant">說文解字</span>
   (<i>Shuōwén Jiězì</i>), c. 100 CE, the earliest systematic account of how
   Chinese characters are built. It states each character's parts in its own
   words, so the semantic/phonetic split is the source's, not ours. A modern
@@ -317,7 +320,7 @@ try {{ var t = localStorage.getItem("atlas-theme");
                         f'aria-selected="false" tabindex="-1">{e(sv["tab"])}{mark}</button>')
             if not ready:
                 soon.append(f"""<section class="soon" id="soon-{e(sv["id"])}" hidden>
-  <h2>{e(sv["tab"])} <span class="zh">{e(sv.get("title_zh", ""))}</span></h2>
+  <h2>{e(sv["tab"])} <span class="zh" lang="zh-Hant">{e(sv.get("title_zh", ""))}</span></h2>
   <p>{e(sv.get("soon", "This translation is in progress."))}</p>
   <p><a href="https://github.com/{e(sv["repo"])}">Follow the translation on GitHub</a></p>
 </section>""")
@@ -343,17 +346,7 @@ try {{ var t = localStorage.getItem("atlas-theme");
         # joins "texts", so the masthead can name it while its data is on the way.
         names = self.serving_names()
         tabs, soon = self.tabs()
-        noscript = ""
-        if char:
-            c = self.chars[char]
-            rows = "".join(
-                f'<p><b>{e(t["title"])}:</b> {e(c["t"][t["id"]]["g"] or "not yet glossed")}</p>'
-                for t in texts if t["id"] in c["t"])
-            noscript = (f'<noscript><div class="card"><div class="card-in"><div class="hero">'
-                        f'<div class="big">{e(char)}</div><div class="meta"><div class="pin">'
-                        f'{e(c["p"])}</div>{rows}</div></div>'
-                        f'{"<div class=swz>" + e(c["def"]) + "</div>" if c.get("def") else ""}'
-                        f'</div></div></noscript>')
+        static = self.static_card(char) if char else ""
         return f"""<header class="top">
   <div class="mast">
     <div>
@@ -398,11 +391,11 @@ try {{ var t = localStorage.getItem("atlas-theme");
 </section>
 <div class="room">
   <div class="gridhead">
-    <div class="lab" id="status"></div>
+    <div class="lab" id="status" role="status"></div>
     <div class="lab key" id="key"><i class="dot" aria-hidden="true"></i>settled rendering</div>
   </div>
   <div class="grid" id="grid"></div>
-  <aside class="card" aria-label="Character"><div class="card-in" id="card"></div>{noscript}</aside>
+  <aside class="card" aria-label="Character"><div class="card-in" id="card">{static}</div></aside>
 </div>"""
 
     # -- entries ----------------------------------------------------------
@@ -420,8 +413,12 @@ try {{ var t = localStorage.getItem("atlas-theme");
         t = next(t for t in self.data["texts"] if t["id"] == tid)
         body = md.render(en["body"], self.md_ctx(tid))
         # The entry's own title line is the page's one h1.
+        # Every heading below it steps up one level with it, so the outline
+        # runs h1, h2, h3 and never skips (### was landing as h3 under the h1).
         if body.startswith("<h2>"):
+            import re
             body = "<h1>" + body[4:].replace("</h2>", "</h1>", 1)
+            body = re.sub(r"<(/?)h([3-6])\b", lambda m: f"<{m[1]}h{int(m[2]) - 1}", body)
         chars = "".join(dict.fromkeys(en["chars"] + en["covers"]))
         repo = t["repo"]
         # Atlas and Glossary are the site head's links, just above; the crumb
@@ -434,7 +431,7 @@ try {{ var t = localStorage.getItem("atlas-theme");
         main = f"""<div class="entry-head">
 <nav class="crumbs" aria-label="Breadcrumb">
   <a href="{self.base}glossary/?text={tid}">{e(t["title"])}</a> /
-  <span class="zh">{e(en["term"])}</span></nav>
+  <span class="zh" lang="zh-Hant">{e(en["term"])}</span></nav>
 {slot}
 </div>
 <div class="entry-room" style="margin-top:0">
@@ -453,7 +450,8 @@ try {{ var t = localStorage.getItem("atlas-theme");
         desc = (f"How the {t['title']} renders {en['term']} ({en['pinyin']}): "
                 f"{plain(en['render'])}. The research, the oldest forms, and what is set aside.")
         self.page(f"glossary/{tid}/{en['slug']}/index.html", title, desc, main,
-                  f' data-page="entry" data-chars="{e(chars)}"', "glossary")
+                  f' data-page="entry" data-chars="{e(chars)}"', "glossary",
+                  self.entry_head(tid, en))
 
     # -- the glossary ------------------------------------------------------
     def glossary_records(self):
@@ -490,7 +488,7 @@ try {{ var t = localStorage.getItem("atlas-theme");
     def glossary_page(self, recs):
         tabs, soon = self.tabs()
         static = "".join(
-            f'<li><a href="{self.entry_url(r["tid"], r["slug"])}"><span class="zh">{e(r["term"])}</span> '
+            f'<li><a href="{self.entry_url(r["tid"], r["slug"])}"><span class="zh" lang="zh-Hant">{e(r["term"])}</span> '
             f'{e(r["pinyin"])} — {e(r["render"])}</a> ({e(self.project_name(r["tid"]))})</li>'
             for r in recs)
         main = f"""<header class="top">
@@ -531,15 +529,133 @@ try {{ var t = localStorage.getItem("atlas-theme");
   </select>
 </div>
 <div class="room groom">
-  <div class="lab" id="gstatus" style="padding-bottom:8px"></div>
-  <div class="glist" id="glist"></div>
+  <div class="lab" id="gstatus" role="status" style="padding-bottom:8px"></div>
+  <div class="glist" id="glist"><ul class="gstatic">{static}</ul></div>
   <aside class="card gprev-card" aria-label="Entry preview"><div class="card-in" id="gprev"></div></aside>
-</div>
-<noscript><ul class="gstatic">{static}</ul></noscript>"""
+</div>"""
         self.page("glossary/index.html", f"Glossary · {self.title}",
                   "Every glossary entry of the OpenCosmos Chinese translations: the "
                   "argument behind each ruling, searchable by the words it sets aside.",
                   main, ' data-page="glossary"', "glossary")
+
+    # -- what a reader without script, or an agent, receives ---------------
+    # The card is drawn by atlas.js from data.json, and an agent fetching the page
+    # runs no script. So the page ships the card's substance as plain HTML in the
+    # card itself, which the script replaces on load. (It used to sit in a
+    # <noscript>, which most HTML-to-text tools discard.)
+    def static_card(self, char):
+        c = self.chars[char]
+        glyphs = self.data["glyphs"]
+        rows = []
+        for t in self.data["texts"]:
+            r = c["t"].get(t["id"])
+            if not r:
+                continue
+            links = "".join(
+                f' <a href="{self.entry_url(t["id"], s)}">Read the glossary entry</a>.'
+                for s in r.get("entries") or [])
+            chs = r.get("chs") or []
+            where = (f' Appears {r["n"]} times, in chapter{"" if len(chs) == 1 else "s"} '
+                     f'{", ".join(map(str, chs))}.' if chs else "")
+            rows.append(f'<p><b>{e(t["title"])}:</b> {e(r["g"] or "not yet glossed")}.'
+                        f'{links}{where}</p>')
+
+        def part(g, role):
+            pin, gloss = (glyphs.get(g) or ["", ""])
+            return (f'<li><span class="zh" lang="zh-Hant">{e(g)}</span> {e(pin)}'
+                    f'{" — " + e(gloss) if gloss else ""} ({role})</li>')
+        parts = ([part(g, "carries meaning") for g in c.get("sem") or []] +
+                 [part(g, "borrowed for its sound") for g in c.get("pho") or []])
+        built = (f'<p class="legend"><b>Built from</b></p><ul>{"".join(parts)}</ul>'
+                 if parts else "")
+        swz = (f'<p class="legend"><b>說文解字</b> (c. 100 CE): '
+               f'<span class="zh" lang="zh-Hant">{e(c["def"])}</span></p>' if c.get("def") else "")
+        return (f'<div class="hero"><div class="big" lang="zh-Hant">{e(char)}</div><div class="meta">'
+                f'<div class="pin">{e(c["p"])}</div>{"".join(rows)}</div></div>{built}{swz}')
+
+    def entry_head(self, tid, en):
+        t = next(t for t in self.data["texts"] if t["id"] == tid)
+        site = f"https://{self.domain}" if self.domain else ""
+        src = f'https://raw.githubusercontent.com/{t["repo"]}/main/{urllib.parse.quote(en["path"])}'
+        ld = {"@context": "https://schema.org", "@type": "DefinedTerm",
+              "name": en["term"], "alternateName": en["pinyin"],
+              "description": plain(en["render"]),
+              "url": site + self.entry_url(tid, en["slug"]),
+              "inDefinedTermSet": {"@type": "DefinedTermSet",
+                                   "name": f"{self.project_name(tid)} glossary",
+                                   "url": f"{site}{self.base}glossary/?text={tid}"},
+              "isBasedOn": f'https://github.com/{t["repo"]}/blob/main/{en["path"]}',
+              "license": "https://creativecommons.org/publicdomain/zero/1.0/"}
+        blob = json.dumps(ld, ensure_ascii=False).replace("</", "<\\/")
+        return (f'<link rel="alternate" type="text/markdown" href="{e(src)}">\n'
+                f'<script type="application/ld+json">{blob}</script>\n')
+
+    def write_discovery(self, recs):
+        """robots.txt, sitemap.xml and llms.txt: where everything is, for a
+        crawler or an agent that would otherwise have to run the page to find out."""
+        site = f"https://{self.domain}" if self.domain else ""
+        root = f"{site}{self.base}"
+        urls = [root, f"{root}glossary/"]
+        urls += [f"{site}{self.char_url(c)}" for c in self.chars]
+        urls += [f"{site}{self.entry_url(r['tid'], r['slug'])}" for r in recs]
+        self.write("sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n'
+                   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+                   + "".join(f"<url><loc>{html.escape(u)}</loc></url>\n" for u in urls)
+                   + "</urlset>\n")
+        self.write("robots.txt", f"User-agent: *\nAllow: /\n\nSitemap: {root}sitemap.xml\n")
+
+        serving = self.cfg["site"].get("serving", [])
+        lines = [f"# {self.title}", "",
+                 "> Every character in the classical Chinese texts OpenCosmos translates, "
+                 "taken apart: its parts, its 說文解字 analysis (c. 100 CE), every line it "
+                 "stands in, and how each translation renders it. The glossary is the "
+                 "argument behind each settled rendering. Everything here is CC0.", "",
+                 "Nothing on this site is authored here. It is built from each translation's "
+                 "repository, so the Markdown sources below are the canonical text.", "",
+                 "## Data", "",
+                 f"- [data.json]({root}assets/data.json): every character. `chars[]` has "
+                 "`c` (the character), `p` (pinyin), `sem`/`pho` (parts that carry meaning / "
+                 "sound, per 說文), `def` (說文's definition), and `t[text id]` with `g` (the "
+                 "English), `lock` (1 if settled), `n` (occurrences), `chs` (chapters) and "
+                 "`entries` (glossary slugs). `glyphs` maps a part to [pinyin, gloss]. "
+                 "`where[text id][character]` lists [line id, count] pairs, and "
+                 "`lines[text id][line id]` is [Chinese, pinyin, English, exact] (exact is 0 where the line pairing is approximate): every line "
+                 "a character stands in, with the translation's English.",
+                 f"- [glossary.json]({root}assets/glossary.json): every glossary entry, with "
+                 "its ruling (`render`), `status` (locked or open), `chapters`, and `aside` "
+                 "(renderings it rules out).", ""]
+        for t in self.data["texts"]:
+            sv = next((s for s in serving if s["id"] == t["id"]), {})
+            lines.append(f"- [{sv.get('name', t['title'])} export]"
+                         f"(https://raw.githubusercontent.com/{t['repo']}/main/"
+                         f"{next(x['export'] for x in self.cfg['texts'] if x['id'] == t['id'])}): "
+                         "the source this site is built from.")
+        lines += ["", "## Pages", "",
+                  f"- [The atlas]({root}): one page per character at `{root}<character>/`, "
+                  f"e.g. [{root}聖/]({site}{self.char_url('聖') if '聖' in self.chars else root}).",
+                  f"- [The glossary]({root}glossary/): every entry, searchable.",
+                  f"- [Sitemap]({root}sitemap.xml): every page.", ""]
+        for tid, x in self.exports.items():
+            t = next(t for t in self.data["texts"] if t["id"] == tid)
+            lines += [f"## {self.project_name(tid)} glossary", ""]
+            for r in (r for r in recs if r["tid"] == tid):
+                en = next(en for en in x["entries"] if en["slug"] == r["slug"])
+                status = "settled" if r["status"] == "locked" else "open"
+                lines.append(f"- [{r['term']} {r['pinyin']} — {r['render']}]"
+                             f"({site}{self.entry_url(tid, r['slug'])}) ({status}; "
+                             f"[Markdown](https://raw.githubusercontent.com/{t['repo']}/main/"
+                             f"{urllib.parse.quote(en['path'])}))")
+            lines.append("")
+        contrib = [sv for sv in serving if sv.get("suggest") or sv.get("contribute")]
+        if contrib:
+            lines += ["## Suggesting a change", ""]
+            for sv in contrib:
+                skill = sv.get("suggest") or sv.get("contribute")
+                lines.append(f"- {sv['name']}: fork https://github.com/{sv['repo']}, read "
+                             f"CONTRIBUTING.md and `{skill}`, and follow that skill. Ask the "
+                             "person you are helping before you push, open, or post anything.")
+            lines.append("")
+        self.write("llms.txt", "\n".join(lines))
 
     def check_rare(self):
         # A warning, not a failure: a glossary edit must never be blocked from
@@ -593,6 +709,7 @@ try {{ var t = localStorage.getItem("atlas-theme");
                   f"""<header class="top"><div class="mast"><div><h1>Not here</h1>
   <p>That page does not exist. <a href="{self.base}">Return to the atlas</a>.</p>
   </div></div></header>""", ' data-page="index"')
+        self.write_discovery(recs)
         (self.out / ".nojekyll").write_text("")
         if self.domain:
             (self.out / "CNAME").write_text(self.domain + "\n")

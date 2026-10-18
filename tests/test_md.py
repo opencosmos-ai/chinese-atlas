@@ -19,7 +19,7 @@ class Inline(unittest.TestCase):
     def test_han_is_wrapped_and_linked(self):
         ctx = md.Context(char_url=lambda c: f"/{c}/", known_chars=frozenset("道"))
         out = md.inline("道德", ctx)
-        self.assertEqual(out, '<span class="zh"><a class="zc" href="/道/">道</a>德</span>')
+        self.assertEqual(out, '<span class="zh" lang="zh-Hant"><a class="zc" href="/道/">道</a>德</span>')
 
     def test_code_path_links(self):
         ctx = md.Context(entry_url=lambda s: f"/e/{s}/" if s == "de-德" else None,
