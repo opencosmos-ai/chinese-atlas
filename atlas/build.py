@@ -551,9 +551,20 @@ try {{ var t = localStorage.getItem("atlas-theme");
             r = c["t"].get(t["id"])
             if not r:
                 continue
-            links = "".join(
-                f' <a href="{self.entry_url(t["id"], s)}">Read the glossary entry</a>.'
-                for s in r.get("entries") or [])
+            E = self.data["entries"][t["id"]]
+
+            def link(s):
+                # An entry that only covers this character (營 inside 魄) is
+                # named, so its rendering is not taken for this character's.
+                en = E.get(s)
+                if not en or char in en["term"]:
+                    return (f' <a href="{self.entry_url(t["id"], s)}">'
+                            f'Read the glossary entry</a>.')
+                return (f' Ruled inside the glossary entry for <span class="zh" '
+                        f'lang="zh-Hant">{e(en["term"])}</span> ({e(en["pinyin"])} — '
+                        f'{e(en["render"])}): <a href="{self.entry_url(t["id"], s)}">'
+                        f'read it</a>.')
+            links = "".join(link(s) for s in r.get("entries") or [])
             chs = r.get("chs") or []
             where = (f' Appears {r["n"]} times, in chapter{"" if len(chs) == 1 else "s"} '
                      f'{", ".join(map(str, chs))}.' if chs else "")

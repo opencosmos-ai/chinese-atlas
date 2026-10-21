@@ -89,6 +89,22 @@ class Site(unittest.TestCase):
                 if r.get("chs"):
                     self.assertIn(f'Appears {r["n"]} times', card, c["c"])
 
+    def test_a_covering_entry_is_named_not_passed_off_as_the_characters_own(self):
+        # 營 is ruled inside 魄's entry, as "housing"; its card must not read
+        # as if 營 meant 魄's "aliveness".
+        checked = 0
+        for c in self.data["chars"]:
+            for tid, r in c["t"].items():
+                E = self.data["entries"][tid]
+                for slug in r.get("entries") or []:
+                    if c["c"] in E[slug]["term"]:
+                        continue
+                    page = (self.out / c["c"] / "index.html").read_text(encoding="utf-8")
+                    self.assertIn(f'Ruled inside the glossary entry for <span class="zh" '
+                                  f'lang="zh-Hant">{build.e(E[slug]["term"])}</span>', page, c["c"])
+                    checked += 1
+        self.assertGreater(checked, 0)
+
     def test_every_page_has_one_main_and_marks_its_chinese(self):
         # A screen reader voices Chinese only when it is marked as Chinese, so
         # every element that sets Han text carries lang="zh-Hant".

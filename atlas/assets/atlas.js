@@ -225,10 +225,15 @@ function glossaryButtons(c, texts){
     const E = D.entries[t.id] || {};
     const main = slugs.find(s => E[s] && E[s].term === c.c) || slugs[0];
     const e = E[main];
+    // An entry can rule on a character it is not about (營 is covered inside
+    // 魄, as "housing"). Its term and rendering are the other character's, so
+    // the button says whose entry it is, or 營 would read as "aliveness".
+    const inside = !e.term.includes(c.c);
     h += `<a class="gbtn" href="${entryUrl(t.id, main)}">
       <span><span class="k">${many ? esc(t.title) + ' · ' : ''}Read the glossary entry${
         e.status === 'open' ? ' · open' : ''}</span>
-      <span class="t"><span class="zh" lang="zh-Hant">${esc(e.term)}</span> ${esc(e.pinyin)} — ${esc(e.render)}</span></span>
+      <span class="t">${inside ? 'Ruled inside the entry for ' : ''}<span class="zh" lang="zh-Hant">${
+        esc(e.term)}</span> ${esc(e.pinyin)} — ${esc(e.render)}</span></span>
       <span class="arrow" aria-hidden="true">→</span></a>`;
     const rest = slugs.filter(s => s !== main && E[s]);
     if (rest.length)
