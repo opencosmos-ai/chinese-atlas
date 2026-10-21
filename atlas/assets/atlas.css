@@ -501,9 +501,10 @@ footer a{color:var(--ink-2);text-underline-offset:3px}
 .crumbs a:hover{color:var(--ink);text-decoration:underline}
 .prose{max-width:66ch;font-size:17px;line-height:1.65;color:var(--ink)}
 .prose .zh{font-size:1.05em}
-.prose a.zc{text-decoration:none;color:inherit}
-.prose a.zc:hover{color:var(--accent);text-decoration:underline;
-  text-underline-offset:3px}
+/* Every character with an atlas page is a link, in the gold links wear here;
+   the underline waits for the pointer, so a dense line of Chinese stays legible. */
+.prose a.zc{text-decoration:none;color:var(--accent)}
+.prose a.zc:hover{text-decoration:underline;text-underline-offset:3px}
 /* An entry's title is its h1, and its sections step up to follow it (build.py
    entry_page), so the outline never skips a level: h1 title, h2 section, h3 sub. */
 .prose h1{font-size:clamp(24px,2.6vw,30px);line-height:1.15;margin:0 0 6px;

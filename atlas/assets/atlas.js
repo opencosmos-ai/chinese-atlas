@@ -708,7 +708,25 @@ if (built && BUILT[built]){
 const START = document.body.dataset.char || '道';
 history.replaceState({c: START}, '', location.href);
 sel = START;
+// Arriving on a character's own address (a glossary entry links every
+// character it names) is a request for that character, so it must be in the
+// grid: a grammar word turns "hide grammar" off rather than vanish.
+const ARRIVED = !!document.body.dataset.char && !!byChar[START];
+if (ARRIVED && (view(byChar[START]) || {}).fw){
+  filter.real = false; el('f-real').setAttribute('aria-pressed', 'false');
+}
 setTab(tf, false);
+// …and the reader should see where it landed. Wide, its cell is brought into
+// view and the sticky card stays beside it; narrow, the card sits below the
+// whole grid, so it is the card that comes into view, as a click on a cell does.
+function reveal(){
+  if (window.innerWidth <= 980) return card.scrollIntoView({block: 'start'});
+  const cell = grid.querySelector('.cell[aria-current="true"]');
+  if (!cell) return;
+  const r = cell.getBoundingClientRect();
+  if (r.top < 0 || r.bottom > window.innerHeight) cell.scrollIntoView({block: 'center'});
+}
+if (ARRIVED) reveal();
 
 // ---------------------------------------------------------------- the glossary
 // One glossary for every translation. Each entry keeps its text's label; the
