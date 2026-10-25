@@ -513,6 +513,9 @@ footer a{color:var(--ink-2);text-underline-offset:3px}
    the underline waits for the pointer, so a dense line of Chinese stays legible. */
 .prose a.zc{text-decoration:none;color:var(--accent)}
 .prose a.zc:hover{text-decoration:underline;text-underline-offset:3px}
+/* A chapter citation opens that chapter in the translation's reader. */
+.prose a.ch{text-decoration:none;color:var(--accent)}
+.prose a.ch:hover,.prose a.ch:focus-visible{text-decoration:underline;text-underline-offset:3px}
 /* An entry's title is its h1, and its sections step up to follow it (build.py
    entry_page), so the outline never skips a level: h1 title, h2 section, h3 sub. */
 .prose h1{font-size:clamp(24px,2.6vw,30px);line-height:1.15;margin:0 0 6px;

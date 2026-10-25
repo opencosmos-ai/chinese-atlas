@@ -424,11 +424,20 @@ try {{ var t = localStorage.getItem("atlas-theme");
         x = self.exports[tid]
         slugs = {en["slug"] for en in x["entries"]}
         repo = x["text"]["repo"]
+        t = next(t for t in self.data["texts"] if t["id"] == tid)
+        rd, unit = t.get("reader"), t.get("unit", "")
+
+        def unit_url(n):
+            if rd and 1 <= n <= t.get("units", 0):
+                return rd["unit"].replace("{unit}", str(n))
+            return None
+        abbr = (t.get("abbr") or "").lower()
+        words = tuple(w for w in (unit, unit + "s", abbr, abbr + "s") if w and w != "s") if rd else ()
         return md.Context(
             char_url=self.char_url,
             entry_url=lambda s: self.entry_url(tid, s) if s in slugs else None,
             repo_url=lambda p: f"https://github.com/{repo}/blob/main/{urllib.parse.quote(p)}",
-            known_chars=frozenset(self.chars))
+            known_chars=frozenset(self.chars), unit_url=unit_url, unit_words=words)
 
     def entry_page(self, tid, en):
         t = next(t for t in self.data["texts"] if t["id"] == tid)
