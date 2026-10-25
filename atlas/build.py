@@ -123,18 +123,6 @@ def merge(exports, cfg=None):
         lines[tid] = {k: v + [align[k][0][0] if align.get(k) else 0]
                       for k, v in x["lines"].items()}
         where[tid], units[tid] = x["where"], x["chapters"]
-        # A character's English names its ruling's chapter-scoped flexions after
-        # the primary, so a card shows every English the verse prints for it:
-        # 勤 reads "strain · labor".
-        for en in x["entries"]:
-            extra = []
-            for f in en.get("flexions") or []:
-                if f["english"] not in extra:
-                    extra.append(f["english"])
-            for ch in en["term"].replace(" ", "").split("&"):
-                r = chars.get(ch, {}).get("t", {}).get(tid)
-                if extra and r and r["g"] and r["g"] == r["r"]:
-                    r["g"] = r["r"] = " · ".join([r["g"]] + [plain(e) for e in extra])
         entries[tid] = {en["slug"]: {"term": en["term"], "pinyin": en["pinyin"],
                                      "render": plain(en["render"]), "status": en["status"]}
                         for en in x["entries"]}
