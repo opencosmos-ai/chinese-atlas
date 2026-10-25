@@ -350,8 +350,16 @@ function heatSection(c, t, mode){
     const L = lines[key]; if (!L) continue;
     const [u, seq] = key.split('.');
     const zh = esc(L[0]).split(c.c).join(`<mark>${esc(c.c)}</mark>`);
+    // The citation opens the line in the translation's own reader, where the
+    // whole chapter can be read around it.
+    const cite = `${esc(t.abbr)} ${u} · LINE ${seq}`;
+    const ref = t.reader && L[4]
+      ? `<a href="${esc(t.reader.line.replace('{unit}', u).replace('{verse}', L[4]))}"
+          target="_blank" rel="noopener"
+          title="Read ${esc(t.unit)} ${u} in ${esc(t.reader.name)}">${cite}</a>`
+      : cite;
     h += `<div class="oc">
-      <div class="ref">${esc(t.abbr)} ${u} · LINE ${seq}${
+      <div class="ref">${ref}${
         times > 1 ? `<span class="times">${times}× in this line</span>` : ''}</div>
       <div class="zh" lang="zh-Hant">${zh}</div>
       <div class="py2">${esc(L[1] || '')}</div>
