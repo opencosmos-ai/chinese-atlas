@@ -243,6 +243,38 @@ function glossaryButtons(c, texts){
   return h ? `<div class="gwrap">${h}</div>` : '';
 }
 
+// Lines shown for each text when several texts are compared under All.
+const SUMMARY_LINES = 3;
+
+// The lines a character stands in, each with its citation, its Chinese with
+// the character marked, its pinyin and the translation's English.
+function occHtml(c, t, list){
+  const lines = D.lines[t.id];
+  let h = `<div class="occ">`;
+  for (const [key, times] of list){
+    const L = lines[key]; if (!L) continue;
+    const [u, seq] = key.split('.');
+    const zh = esc(L[0]).split(c.c).join(`<mark>${esc(c.c)}</mark>`);
+    // The citation opens the line in the translation's own reader, where the
+    // whole chapter can be read around it.
+    const cite = `${esc(t.abbr)} ${u} · LINE ${seq}`;
+    const ref = t.reader && L[4]
+      ? `<a href="${esc(t.reader.line.replace('{unit}', u).replace('{verse}', L[4]))}"
+          target="_blank" rel="noopener"
+          title="Read ${esc(t.unit)} ${u} in ${esc(t.reader.name)}">${cite}</a>`
+      : cite;
+    h += `<div class="oc">
+      <div class="ref">${ref}${
+        times > 1 ? `<span class="times">${times}× in this line</span>` : ''}</div>
+      <div class="zh" lang="zh-Hant">${zh}</div>
+      <div class="py2">${esc(L[1] || '')}</div>
+      <div class="en">${esc(L[2] || '—')}</div>
+      ${L[3] ? '' : '<div class="approx">line pairing approximate</div>'}
+    </div>`;
+  }
+  return h + `</div>`;
+}
+
 function heatSection(c, t, mode){
   const full = mode !== 'summary';
   const r = c.t[t.id], U = D.units[t.id] || {}, N = t.units;
@@ -301,8 +333,12 @@ function heatSection(c, t, mode){
       <span class="lab">${peak}&times; in one ${unit}</span>
     </div>`;
   if (!full){
-    h += `</section><button class="txgo" type="button" data-go="${t.id}">
-      Read its ${occ.length} line${occ.length === 1 ? '' : 's'} in the ${esc(t.title)} →</button>`;
+    // A summary beside other texts still shows the evidence: the first few
+    // lines, and the way into the rest under the text's own tab.
+    h += `</section><section class="blk">${occHtml(c, t, occ.slice(0, SUMMARY_LINES))}</section>`;
+    if (occ.length > SUMMARY_LINES)
+      h += `<button class="txgo" type="button" data-go="${t.id}">
+        All ${occ.length} lines in the ${esc(t.title)} →</button>`;
     return h;
   }
   if (!on)
@@ -337,7 +373,6 @@ function heatSection(c, t, mode){
       and absence from it is not proof of lateness.</p>`;
   h += `</section>`;
 
-  const lines = D.lines[t.id];
   const shown = unitFilter && unitFilter[0] === t.id
     ? occ.filter(e => +e[0].split('.')[0] === unitFilter[1]) : occ;
   h += `<section class="blk"><span class="lab">In the text</span>`;
@@ -345,21 +380,7 @@ function heatSection(c, t, mode){
     h += `<p class="legend" style="margin:0 0 9px">${Unit} ${unitFilter[1]} only —
       <button class="allu" type="button" style="padding:2px 7px">show all
       ${occ.length} lines</button></p>`;
-  h += `<div class="occ">`;
-  for (const [key, times] of shown.slice(0, occLimit)){
-    const L = lines[key]; if (!L) continue;
-    const [u, seq] = key.split('.');
-    const zh = esc(L[0]).split(c.c).join(`<mark>${esc(c.c)}</mark>`);
-    h += `<div class="oc">
-      <div class="ref">${esc(t.abbr)} ${u} · LINE ${seq}${
-        times > 1 ? `<span class="times">${times}× in this line</span>` : ''}</div>
-      <div class="zh" lang="zh-Hant">${zh}</div>
-      <div class="py2">${esc(L[1] || '')}</div>
-      <div class="en">${esc(L[2] || '—')}</div>
-      ${L[3] ? '' : '<div class="approx">line pairing approximate</div>'}
-    </div>`;
-  }
-  h += `</div>`;
+  h += occHtml(c, t, shown.slice(0, occLimit));
   if (shown.length > occLimit)
     h += `<button class="more" type="button">Show more
           (${shown.length - occLimit} more line${shown.length - occLimit === 1 ? '' : 's'})</button>`;
@@ -452,9 +473,11 @@ function cardHtml(chr, compact){
   }
 
   // All texts: a comparison. Each text the character appears in gets a short
-  // summary (its map, and the way into its own view), and none of them takes
-  // over the card. One text's tab: that text's full map and its lines.
-  if (tf === 'all'){
+  // summary (its map, its first lines, and the way into its own view), and
+  // none of them takes over the card. A character only one text holds has
+  // nothing to compare, so it gets that text's full view, as on its tab.
+  // One text's tab: that text's full map and its lines.
+  if (tf === 'all' && present.length > 1){
     if (present.length){
       h += `<div class="txs"><span class="lab txs-lab">In the texts</span>`;
       for (const t of present)
@@ -478,7 +501,7 @@ function wireCard(card, chr, rerender){
   card.querySelectorAll('.hc').forEach(b => b.onclick = () => {
     const tid = b.dataset.tid, n = +b.dataset.u;
     if (b.classList.contains('void')) return;
-    if (tf === 'all'){                   // a summary map opens that text's view
+    if (b.closest('.tx')){               // a summary map opens that text's view
       setTab(tid, true); unitFilter = [tid, n]; occLimit = 6; show(sel); return;
     }
     unitFilter = unitFilter && unitFilter[0] === tid && unitFilter[1] === n ? null : [tid, n];

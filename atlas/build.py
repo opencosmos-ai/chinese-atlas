@@ -88,11 +88,13 @@ def plain(s):
 PER_TEXT = ("g", "r", "lock", "tier", "n", "chs", "cent", "fw", "entries")
 
 
-def merge(exports):
+def merge(exports, cfg=None):
+    readers = {t["id"]: t["reader"] for t in (cfg or {}).get("texts", []) if t.get("reader")}
     texts, chars, glyphs, built = [], {}, {}, {}
     lines, where, units, entries = {}, {}, {}, {}
     for tid, x in exports.items():
-        texts.append({**x["text"], "id": tid})
+        texts.append({**x["text"], "id": tid,
+                      **({"reader": readers[tid]} if tid in readers else {})})
         for c in x["chars"]:
             m = chars.setdefault(c["c"], {"c": c["c"], "t": {}})
             for k in SHARED:
@@ -113,7 +115,14 @@ def merge(exports):
             for mem in members:
                 if mem not in have:
                     have.append(mem)
-        lines[tid], where[tid], units[tid] = x["lines"], x["where"], x["chapters"]
+        # Each line also carries the English line that renders it, so a citation
+        # can open the translation's reader there. The reader numbers its English
+        # lines, the atlas cites Chinese ones, and the export's alignment joins
+        # them; 0 where a line has no pairing.
+        align = x.get("align") or {}
+        lines[tid] = {k: v + [align[k][0][0] if align.get(k) else 0]
+                      for k, v in x["lines"].items()}
+        where[tid], units[tid] = x["where"], x["chapters"]
         entries[tid] = {en["slug"]: {"term": en["term"], "pinyin": en["pinyin"],
                                      "render": plain(en["render"]), "status": en["status"]}
                         for en in x["entries"]}
@@ -403,11 +412,20 @@ try {{ var t = localStorage.getItem("atlas-theme");
         x = self.exports[tid]
         slugs = {en["slug"] for en in x["entries"]}
         repo = x["text"]["repo"]
+        t = next(t for t in self.data["texts"] if t["id"] == tid)
+        rd, unit = t.get("reader"), t.get("unit", "")
+
+        def unit_url(n):
+            if rd and 1 <= n <= t.get("units", 0):
+                return rd["unit"].replace("{unit}", str(n))
+            return None
+        abbr = (t.get("abbr") or "").lower()
+        words = tuple(w for w in (unit, unit + "s", abbr, abbr + "s") if w and w != "s") if rd else ()
         return md.Context(
             char_url=self.char_url,
             entry_url=lambda s: self.entry_url(tid, s) if s in slugs else None,
             repo_url=lambda p: f"https://github.com/{repo}/blob/main/{urllib.parse.quote(p)}",
-            known_chars=frozenset(self.chars))
+            known_chars=frozenset(self.chars), unit_url=unit_url, unit_words=words)
 
     def entry_page(self, tid, en):
         t = next(t for t in self.data["texts"] if t["id"] == tid)
@@ -566,8 +584,14 @@ try {{ var t = localStorage.getItem("atlas-theme");
                         f'read it</a>.')
             links = "".join(link(s) for s in r.get("entries") or [])
             chs = r.get("chs") or []
+            rd = t.get("reader")
+
+            def unit(n):
+                if not rd:
+                    return str(n)
+                return f'<a href="{e(rd["unit"].replace("{unit}", str(n)))}">{n}</a>'
             where = (f' Appears {r["n"]} times, in chapter{"" if len(chs) == 1 else "s"} '
-                     f'{", ".join(map(str, chs))}.' if chs else "")
+                     f'{", ".join(unit(n) for n in chs)}.' if chs else "")
             rows.append(f'<p><b>{e(t["title"])}:</b> {e(r["g"] or "not yet glossed")}.'
                         f'{links}{where}</p>')
 
@@ -630,8 +654,10 @@ try {{ var t = localStorage.getItem("atlas-theme");
                  "English), `lock` (1 if settled), `n` (occurrences), `chs` (chapters) and "
                  "`entries` (glossary slugs). `glyphs` maps a part to [pinyin, gloss]. "
                  "`where[text id][character]` lists [line id, count] pairs, and "
-                 "`lines[text id][line id]` is [Chinese, pinyin, English, exact] (exact is 0 where the line pairing is approximate): every line "
-                 "a character stands in, with the translation's English.",
+                 "`lines[text id][line id]` is [Chinese, pinyin, English, exact, verse] (exact is 0 where the line pairing is approximate; "
+                 "verse is the English line that renders it, 0 where none does): every line "
+                 "a character stands in, with the translation's English. `texts[].reader` holds the address "
+                 "of the translation's reader, a unit (`{unit}`) or an English line (`{unit}`, `{verse}`).",
                  f"- [glossary.json]({root}assets/glossary.json): every glossary entry, with "
                  "its ruling (`render`), `status` (locked or open), `chapters`, and `aside` "
                  "(renderings it rules out).", ""]
@@ -738,7 +764,7 @@ def main(argv=None):
     cfg = json.loads((ROOT / "texts.json").read_text(encoding="utf-8"))
     base = args.base or ("/" if cfg["site"].get("domain") else cfg["site"]["project_base"])
     exports = fetch(cfg, args.remote)
-    Site(cfg, merge(exports), exports, base, Path(args.out)).build()
+    Site(cfg, merge(exports, cfg), exports, base, Path(args.out)).build()
     return 0
 
 

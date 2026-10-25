@@ -47,3 +47,31 @@ class Blocks(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Units(unittest.TestCase):
+    """Chapter citations link to the translation's reader."""
+
+    ctx = md.Context(unit_url=lambda n: f"R/{n}" if 1 <= n <= 81 else None,
+                     unit_words=("chapter", "chapters", "ch", "chs"))
+
+    def links(self, html):
+        import re
+        return re.findall(r'href="R/(\d+)"', html)
+
+    def test_every_form_of_citation(self):
+        self.assertEqual(self.links(md.inline("ch 6 · Chapter 16 · chs 6 and 52", self.ctx)),
+                         ["6", "16", "6", "52"])
+        self.assertEqual(self.links(md.inline("天地不仁 (5), and (2, 77)", self.ctx)), ["5", "2", "77"])
+
+    def test_numbers_that_are_not_chapters_stay_plain(self):
+        for s in ("Analects 2.18", "(14.37)", "(100)", "(d. 249)", "3–4 lines", "(2009)"):
+            self.assertEqual(self.links(md.inline(s, self.ctx)), [], s)
+
+    def test_a_table_column_or_row_of_chapters(self):
+        t = md.render("| | 尤 |\n|---|---|\n| chapters | 9, 46 |\n\n"
+                      "| English | Where |\n|---|---|\n| strain | 6, 52 |", self.ctx)
+        self.assertEqual(self.links(t), ["9", "46", "6", "52"])
+
+    def test_no_reader_no_links(self):
+        self.assertNotIn("<a", md.inline("ch 6 (5)", md.Context()))

@@ -12,6 +12,10 @@ Two things are added on the way through, both for the atlas's reader:
   <span class="zh" lang="zh-Hant">, and each character that has an atlas page links to it.
 - **Repository paths become links.** A code span naming a glossary entry links
   to that entry's page; any other path links to the file on GitHub.
+- **Chapter citations become links** into the translation's reader: "ch 6",
+  "chs 6 and 52", "Chapter 16", and the bare "(41)" or "(2, 77)" that follows a
+  quoted line. In a table, so do the numbers in a column or row headed
+  "chapters" or "where".
 """
 
 import html
@@ -25,11 +29,14 @@ class Context:
     """What the renderer needs to know to make links."""
 
     def __init__(self, char_url=None, entry_url=None, repo_url=None,
-                 known_chars=frozenset()):
+                 known_chars=frozenset(), unit_url=None, unit_words=()):
         self.char_url = char_url or (lambda c: None)
         self.entry_url = entry_url or (lambda slug: None)
         self.repo_url = repo_url or (lambda path: None)
         self.known_chars = known_chars
+        # The reader's address for unit n ("chapter 6"), or None past the text.
+        self.unit_url = unit_url or (lambda n: None)
+        self.unit_words = unit_words      # e.g. ("ch", "chs", "chapter", "chapters")
 
 
 # ---------------------------------------------------------------- inline
@@ -57,7 +64,33 @@ def _code(span, ctx):
     return f'<a class="path" href="{url}">{inner}</a>' if url else inner
 
 
-def inline(text, ctx):
+# A run of unit numbers: "6", "6, 41 and 52", "3–4", "28 ×3".
+_NUMS = r"\d{1,3}(?:\s*×\d)?(?:(?:\s*,\s*(?:and\s+)?|\s+and\s+|\s*[–-]\s*)\d{1,3}(?:\s*×\d)?)*"
+
+
+def _link_nums(run, ctx):
+    """Each unit number in a run, linked to the reader."""
+    def one(m):
+        url = ctx.unit_url(int(m.group(0)))
+        return (f'<a class="ch" href="{html.escape(url)}" target="_blank" rel="noopener">'
+                f'{m.group(0)}</a>' if url else m.group(0))
+    return re.sub(r"(?<![×\d])\d{1,3}(?!\d)", one, run)
+
+
+def _units(text, ctx, bare=False):
+    """Link the chapter citations in already-escaped text."""
+    if not ctx.unit_words:
+        return text
+    words = "|".join(sorted(map(re.escape, ctx.unit_words), key=len, reverse=True))
+    text = re.sub(rf"(?i)\b((?:{words})\.?\s+)({_NUMS})",
+                  lambda m: m.group(1) + _link_nums(m.group(2), ctx), text)
+    text = re.sub(rf"\(({_NUMS})\)", lambda m: f"({_link_nums(m.group(1), ctx)})", text)
+    if bare and re.fullmatch(_NUMS, text.strip()):
+        text = _link_nums(text, ctx)
+    return text
+
+
+def inline(text, ctx, units_bare=False):
     # Code spans and escapes are lifted out first so nothing inside them is
     # read as emphasis, then put back at the end.
     held = []
@@ -73,6 +106,7 @@ def inline(text, ctx):
     text = re.sub(r"\*\*\*(.+?)\*\*\*", r"<strong><em>\1</em></strong>", text)
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
     text = re.sub(r"(?<![*\w])\*(?!\s)(.+?)(?<!\s)\*(?![*\w])", r"<em>\1</em>", text)
+    text = _units(text, ctx, units_bare)
     text = _han(text, ctx)
     return re.sub(r"\x00(\d+)\x00", lambda m: held[int(m.group(1))], text)
 
@@ -129,11 +163,17 @@ def render(md, ctx=None):
             while i < len(lines) and lines[i].lstrip().startswith("|"):
                 rows.append(_cells(lines[i]))
                 i += 1
+            # A column or row headed "chapters" or "where" holds bare unit numbers.
+            label = {w.lower() for w in ctx.unit_words} | {"where"}
+            cols = {k for k, c in enumerate(head) if c.strip("* ").lower() in label}
             t = ["<div class=\"tbl\"><table><thead><tr>"]
             t += [f"<th>{inline(c, ctx)}</th>" for c in head]
             t.append("</tr></thead><tbody>")
             for r in rows:
-                t.append("<tr>" + "".join(f"<td>{inline(c, ctx)}</td>" for c in r) + "</tr>")
+                by_row = bool(r) and r[0].strip("* ").lower() in label
+                t.append("<tr>" + "".join(
+                    f"<td>{inline(c, ctx, units_bare=(k in cols or (by_row and k > 0)))}</td>"
+                    for k, c in enumerate(r)) + "</tr>")
             t.append("</tbody></table></div>")
             out.append("".join(t))
             continue

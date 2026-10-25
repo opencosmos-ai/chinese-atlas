@@ -39,7 +39,12 @@
       "id": "tao-te-ching",
       "repo": "opencosmos-ai/taoteching",
       "export": "data/atlas-export.json",
-      "sibling": "../taoteching"
+      "sibling": "../taoteching",
+      "reader": {
+        "name": "the Open Tao Te Ching",
+        "unit": "https://opencosmos.ai/library/sources/taoism-tao-te-ching/{unit}",
+        "line": "https://opencosmos.ai/library/sources/taoism-tao-te-ching/{unit}#verse-{verse}"
+      }
     }
   ]
 }

@@ -22,7 +22,7 @@ class Site(unittest.TestCase):
         cls.out = Path(cls.tmp.name) / "site"
         cfg = json.loads((ROOT / "texts.json").read_text(encoding="utf-8"))
         cls.exports = build.fetch(cfg, bool(os.environ.get("ATLAS_REMOTE")))
-        cls.data = build.merge(cls.exports)
+        cls.data = build.merge(cls.exports, cfg)
         build.Site(cfg, cls.data, cls.exports, "/", cls.out).build()
 
     @classmethod
@@ -88,6 +88,21 @@ class Site(unittest.TestCase):
                     self.assertIn(f'/glossary/{tid}/{urllib.parse.quote(slug)}/', card, c["c"])
                 if r.get("chs"):
                     self.assertIn(f'Appears {r["n"]} times', card, c["c"])
+
+    def test_a_line_knows_the_english_line_the_reader_opens(self):
+        """A citation opens the translation's reader at the English line that
+        renders the Chinese one. Ch 41's first line is its first English line."""
+        lines = self.data["lines"]["tao-te-ching"]
+        self.assertEqual(lines["41.1"][4], 1)
+        for key, L in lines.items():
+            self.assertGreater(L[4], 0, key)
+
+    def test_a_character_page_links_its_chapters_to_the_reader(self):
+        page = (self.out / "勤" / "index.html").read_text(encoding="utf-8")
+        card = page.split('id="card">', 1)[1].split("</aside>", 1)[0]
+        for n in (6, 41, 52):
+            self.assertIn(
+                f'href="https://opencosmos.ai/library/sources/taoism-tao-te-ching/{n}"', card)
 
     def test_a_covering_entry_is_named_not_passed_off_as_the_characters_own(self):
         # 營 is ruled inside 魄's entry, as "housing"; its card must not read

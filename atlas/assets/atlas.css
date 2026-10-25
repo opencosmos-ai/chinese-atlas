@@ -463,6 +463,11 @@ section.blk > .lab{display:block;margin-bottom:8px;
 .oc:first-child{border-top:0;padding-top:0}
 .oc .ref{font-family:var(--mono);font-size:10px;color:var(--ink-3);
   letter-spacing:.05em;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+/* A citation opens its line in the translation's reader, so it wears the gold
+   links wear here; as with the characters in an entry, the underline waits for
+   the pointer. */
+.oc .ref a{color:var(--accent);font-weight:600;text-decoration:none}
+.oc .ref a:hover,.oc .ref a:focus-visible{text-decoration:underline;text-underline-offset:3px}
 .oc .times{color:var(--heat);letter-spacing:.03em}
 .oc .zh{font-family:var(--han);font-size:17px;line-height:1.6;margin-top:3px}
 .oc .zh mark{background:var(--heat-soft);color:var(--heat);
@@ -508,6 +513,9 @@ footer a{color:var(--ink-2);text-underline-offset:3px}
    the underline waits for the pointer, so a dense line of Chinese stays legible. */
 .prose a.zc{text-decoration:none;color:var(--accent)}
 .prose a.zc:hover{text-decoration:underline;text-underline-offset:3px}
+/* A chapter citation opens that chapter in the translation's reader. */
+.prose a.ch{text-decoration:none;color:var(--accent)}
+.prose a.ch:hover,.prose a.ch:focus-visible{text-decoration:underline;text-underline-offset:3px}
 /* An entry's title is its h1, and its sections step up to follow it (build.py
    entry_page), so the outline never skips a level: h1 title, h2 section, h3 sub. */
 .prose h1{font-size:clamp(24px,2.6vw,30px);line-height:1.15;margin:0 0 6px;
