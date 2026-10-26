@@ -75,3 +75,41 @@ class Units(unittest.TestCase):
 
     def test_no_reader_no_links(self):
         self.assertNotIn("<a", md.inline("ch 6 (5)", md.Context()))
+
+
+class Verse(unittest.TestCase):
+    """A quote from the verse is set as verse, English beside Chinese."""
+
+    ctx = Units.ctx
+    quote = ("> *The spirit of the valley is deathless.*\n"
+             "> *This is called the dark female.*\n>\n"
+             "> 谷神不死，\n> 是謂玄牝。\n>\n> — chapter 6")
+
+    def test_lines_pair_row_by_row(self):
+        out = md.render(self.quote, self.ctx)
+        self.assertIn('<figure class="verse">', out)
+        self.assertNotIn("<blockquote>", out)
+        self.assertIn('<p class="en" style="--r:2">This is called the dark female.</p>', out)
+        self.assertIn('style="--r:2">', out.split('class="vz"', 2)[2])
+
+    def test_english_comes_first(self):
+        out = md.render(self.quote, self.ctx)
+        self.assertLess(out.index("deathless"), out.index("谷"))
+
+    def test_the_chapter_is_a_caption_that_links(self):
+        out = md.render(self.quote, self.ctx)
+        self.assertIn('<figcaption><a href="R/6" target="_blank" rel="noopener">Chapter 6</a>'
+                      '</figcaption>', out)
+        self.assertNotIn("—", out)
+        self.assertNotIn("<a", md.render(self.quote.replace("6", "82"), self.ctx).split("</figcaption>")[0])
+
+    def test_unequal_counts_set_two_blocks(self):
+        out = md.render(self.quote.replace("> 是謂玄牝。\n", ""), self.ctx)
+        self.assertIn('<div class="en" style="--r:1">', out)
+        self.assertIn('<div class="vz" lang="zh-Hant" style="--r:1">', out)
+
+    def test_other_quotes_stay_blockquotes(self):
+        for q in ("> 牝，畜母也。\n> *\"the female of livestock\"* — the *Shuowen*",
+                  "> *only English*\n>\n> — chapter 6",
+                  "> *English*\n>\n> not Chinese\n>\n> — chapter 6"):
+            self.assertIn("<blockquote>", md.render(q, self.ctx), q)

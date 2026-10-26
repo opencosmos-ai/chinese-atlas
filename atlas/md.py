@@ -16,6 +16,10 @@ Two things are added on the way through, both for the atlas's reader:
   "chs 6 and 52", "Chapter 16", and the bare "(41)" or "(2, 77)" that follows a
   quoted line. In a table, so do the numbers in a column or row headed
   "chapters" or "where".
+- **Verse quotes are set as verse.** A blockquote of English lines, a blank line,
+  Chinese lines, a blank line and "— chapter 6" becomes a figure: the chapter
+  above as a caption that links to the reader, then the English beside the
+  Chinese, line against line when the counts match.
 """
 
 import html
@@ -113,6 +117,53 @@ def inline(text, ctx, units_bare=False):
 
 # ---------------------------------------------------------------- blocks
 
+_VERSE_CITE = re.compile(r"—\s*chapter\s+(\d{1,3})", re.I)
+
+
+def _verse(block, ctx):
+    """A verse quote as a figure, or None if the blockquote is not one.
+
+    The shape is English lines, a blank line, Chinese lines, a blank line, and
+    "— chapter N". The English goes first in the page, so a narrow screen that
+    stacks the columns reads it first; on a wide one each line takes the row
+    its number gives it, beside the Chinese line it translates."""
+    groups, cur = [], []
+    for line in block + [""]:
+        if line.strip():
+            cur.append(line.strip())
+        elif cur:
+            groups.append(cur)
+            cur = []
+    if len(groups) != 3 or len(groups[2]) != 1:
+        return None
+    m = _VERSE_CITE.fullmatch(groups[2][0])
+    en, zh = groups[0], groups[1]
+    if not m or not all(HAN_RUN.search(z) and not re.search(r"[A-Za-z]", z) for z in zh):
+        return None
+
+    n = int(m.group(1))
+    url = ctx.unit_url(n)
+    cite = (f'<a href="{html.escape(url)}" target="_blank" rel="noopener">Chapter {n}</a>'
+            if url else f"Chapter {n}")
+
+    def bare(e):
+        # The figure says it is verse, so a line's own italics come off.
+        return e[1:-1] if len(e) > 2 and e[0] == e[-1] == "*" and e[1] != "*" else e
+
+    if len(en) == len(zh):
+        rows = [f'<p class="en" style="--r:{k}">{inline(bare(e), ctx)}</p>'
+                for k, e in enumerate(en, 1)]
+        rows += [f'<p class="vz" lang="zh-Hant" style="--r:{k}">{_han(html.escape(z), ctx)}</p>'
+                 for k, z in enumerate(zh, 1)]
+    else:
+        rows = ['<div class="en" style="--r:1">'
+                + "".join(f"<p>{inline(bare(e), ctx)}</p>" for e in en) + "</div>",
+                '<div class="vz" lang="zh-Hant" style="--r:1">'
+                + "".join(f"<p>{_han(html.escape(z), ctx)}</p>" for z in zh) + "</div>"]
+    return (f'<figure class="verse"><figcaption>{cite}</figcaption>'
+            f'<div class="vlines">{"".join(rows)}</div></figure>')
+
+
 def _cells(row):
     row = row.strip()
     if row.startswith("|"):
@@ -153,7 +204,8 @@ def render(md, ctx=None):
             while i < len(lines) and lines[i].startswith(">"):
                 block.append(re.sub(r"^> ?", "", lines[i]))
                 i += 1
-            out.append(f"<blockquote>{render(chr(10).join(block), ctx)}</blockquote>")
+            out.append(_verse(block, ctx)
+                       or f"<blockquote>{render(chr(10).join(block), ctx)}</blockquote>")
             continue
 
         if line.lstrip().startswith("|") and i + 1 < len(lines) and _is_rule_row(lines[i + 1]):
