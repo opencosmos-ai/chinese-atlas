@@ -396,7 +396,7 @@ section.blk > .lab{display:block;margin-bottom:8px;
 
 /* parts */
 /* A grid, and each column a subgrid of three shared rows: the tiles, "Carries
-   meaning", and "Written 氵 at the left". Tiles side by side are then always
+   meaning", and "Written here as 氵, its form at the left". Tiles side by side are then always
    one height, the tallest's, and the notes always start below them. With flex,
    a column lengthened by its notes stretched the other column's tile (2026-11-15). */
 .parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));
