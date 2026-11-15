@@ -130,6 +130,22 @@ class Site(unittest.TestCase):
             unmarked = [m[0] for m in re.finditer(r'class="(zh|big|pg)"(?! lang="zh-Hant")', body)]
             self.assertEqual(unmarked, [], page)
 
+    def test_a_part_says_how_it_is_written_in_place(self):
+        # 沖's card said "built from 水", and a reader could not find water in 沖:
+        # at the left it is written 氵. Wherever an export says how a part is
+        # written, every page built from that part says so too.
+        forms = self.data.get("forms") or {}
+        for c in self.data["chars"]:
+            parts = [p for p in (c.get("sem") or []) + (c.get("pho") or []) if p in forms]
+            if not parts:
+                continue
+            page = (self.out / c["c"] / "index.html").read_text(encoding="utf-8")
+            for p in parts:
+                for f, _ in forms[p]:
+                    self.assertIn(f'<span class="zh" lang="zh-Hant">{f}</span>', page, c["c"])
+        if forms:
+            self.assertIn(["氵", "at the left"], forms["水"])
+
     def test_entry_headings_never_skip_a_level(self):
         for page in self.out.glob("glossary/*/*/index.html"):
             prose = page.read_text(encoding="utf-8").split('<div class="prose">', 1)[1]

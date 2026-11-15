@@ -64,6 +64,20 @@ Tao Te Ching, the English under most characters comes from the hand-kept lists
 `sources/word-glosses.yaml` and `sources/grammar-glosses.yaml`. The meanings of
 the *Built from* parts come from `sources/component-glosses.yaml`, and only a
 character with a glossary entry takes its English from `glossary/`.
+
+**How a part is written in place comes from the export too.** 說文 names a
+part in its full form, and a part changes shape with its position: 水 (*shuǐ* —
+water) is written 氵 at a character's left. So a card that said only "built
+from 水" sent the reader looking for a 水 that 沖 (*chōng*) does not show
+(2026-11-15). Each part's tile now says how it is written, *"Written 氵 at the
+left, 氺 at the bottom,"* from the export's `forms` key
+(`{part: [[form, where], …]}`), which the Tao Te Ching keeps in
+`sources/component-forms.yaml`; the design is recorded in that repository's
+[`ARCHITECTURE.md`](https://github.com/opencosmos-ai/taoteching/blob/main/ARCHITECTURE.md)
+→ *How the work reaches readers*. The atlas merges `forms` across texts, the
+first text to state a part's form speaking for all, and an export without the
+key adds none, so contract 1 is unchanged. The line describes the part, never
+one character, so it stays true where a character writes the part whole.
 [`process/skills/suggest-edit/SKILL.md`](https://github.com/opencosmos-ai/taoteching/blob/main/process/skills/suggest-edit/SKILL.md)
 routes each part of a card to its file, says which are pull requests and which
 need an issue first, and gives the rebuild. That repository's CI refuses a PR
@@ -104,6 +118,9 @@ Chinese is set in a Song (Ming) face: **Songti** where the reader's device has
 it, **Noto Serif TC** everywhere else, and **HanaMin** (花園明朝, GlyphWiki
 Project, Hanazono Font License) for the rare characters neither carries:
 CJK Extension A and B, which is where 說文's older forms and components live.
+The positional forms of parts (氵, 亻, 灬) are in the common fonts. Two that
+are not, ⺮ (bamboo, on top) and ⻊ (foot, at the left), wait for the
+rare-glyph subset to be rebuilt with `atlas/fonts.py`.
 Every text colour meets WCAG AA (4.5:1) on the surface it sits on, in both
 themes.
 

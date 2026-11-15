@@ -90,7 +90,7 @@ PER_TEXT = ("g", "r", "lock", "tier", "n", "chs", "cent", "fw", "entries")
 
 def merge(exports, cfg=None):
     readers = {t["id"]: t["reader"] for t in (cfg or {}).get("texts", []) if t.get("reader")}
-    texts, chars, glyphs, built = [], {}, {}, {}
+    texts, chars, glyphs, built, forms = [], {}, {}, {}, {}
     lines, where, units, entries = {}, {}, {}, {}
     for tid, x in exports.items():
         texts.append({**x["text"], "id": tid,
@@ -110,6 +110,11 @@ def merge(exports, cfg=None):
         for g, (pin, gloss) in x["glyphs"].items():
             if g not in glyphs or (gloss and not glyphs[g][1]):
                 glyphs[g] = [pin, gloss]
+        # How a part is written by position (水 → 氵 at the left). A fact about
+        # the script, so the first text to state it speaks for all; an export
+        # without the key (before 2026-11-15, or a new text) simply adds none.
+        for comp, rows in (x.get("forms") or {}).items():
+            forms.setdefault(comp, rows)
         for comp, members in x["built"].items():
             have = built.setdefault(comp, [])
             for mem in members:
@@ -130,8 +135,13 @@ def merge(exports, cfg=None):
         for k in SHARED:
             m.setdefault(k, [] if k in ("sem", "pho") else None)
     return {"texts": texts, "chars": list(chars.values()), "glyphs": glyphs,
-            "built": built, "lines": lines, "where": where, "units": units,
+            "forms": forms, "built": built, "lines": lines, "where": where, "units": units,
             "entries": entries}
+
+
+def form_text(rows, zh=lambda f: f):
+    """'written 氵 at the left, 氺 at the bottom': how a part looks in place."""
+    return "written " + ", ".join(f"{zh(f)} {html.escape(w)}" for f, w in rows)
 
 
 def rare_uncovered(site):
@@ -595,10 +605,16 @@ try {{ var t = localStorage.getItem("atlas-theme");
             rows.append(f'<p><b>{e(t["title"])}:</b> {e(r["g"] or "not yet glossed")}.'
                         f'{links}{where}</p>')
 
+        forms = self.data.get("forms") or {}
+
+        def zh(f):
+            return f'<span class="zh" lang="zh-Hant">{e(f)}</span>'
+
         def part(g, role):
             pin, gloss = (glyphs.get(g) or ["", ""])
             return (f'<li><span class="zh" lang="zh-Hant">{e(g)}</span> {e(pin)}'
-                    f'{" — " + e(gloss) if gloss else ""} ({role})</li>')
+                    f'{" — " + e(gloss) if gloss else ""} ({role}'
+                    f'{"; " + form_text(forms[g], zh) if forms.get(g) else ""})</li>')
         parts = ([part(g, "carries meaning") for g in c.get("sem") or []] +
                  [part(g, "borrowed for its sound") for g in c.get("pho") or []])
         built = (f'<p class="legend"><b>Built from</b></p><ul>{"".join(parts)}</ul>'
@@ -652,7 +668,8 @@ try {{ var t = localStorage.getItem("atlas-theme");
                  "`c` (the character), `p` (pinyin), `sem`/`pho` (parts that carry meaning / "
                  "sound, per 說文), `def` (說文's definition), and `t[text id]` with `g` (the "
                  "English), `lock` (1 if settled), `n` (occurrences), `chs` (chapters) and "
-                 "`entries` (glossary slugs). `glyphs` maps a part to [pinyin, gloss]. "
+                 "`entries` (glossary slugs). `glyphs` maps a part to [pinyin, gloss], and `forms` maps a part to the "
+                 "[form, where] pairs that say how it is written by position (水 → 氵, at the left). "
                  "`where[text id][character]` lists [line id, count] pairs, and "
                  "`lines[text id][line id]` is [Chinese, pinyin, English, exact, verse] (exact is 0 where the line pairing is approximate; "
                  "verse is the English line that renders it, 0 where none does): every line "
