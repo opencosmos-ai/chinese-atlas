@@ -146,8 +146,10 @@ def form_rows(rows, char):
 
 
 def form_text(rows, zh=lambda f: f):
-    """'written 氵 at the left': how a part looks in this character."""
-    return "written " + ", ".join(f"{zh(r[0])} {html.escape(r[1])}" for r in rows)
+    """'written here as 氵, its form at the left': how a part looks in this
+    character. "Its form" tells a reader who reads no Chinese that 氵 is the
+    part above, written differently, and not a character of its own."""
+    return "written here as " + "; ".join(f"{zh(r[0])}, its form {html.escape(r[1])}" for r in rows)
 
 
 def rare_uncovered(site):

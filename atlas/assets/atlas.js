@@ -219,11 +219,14 @@ function partBtn(ch, role, link){
 // on a card is read as a claim about that character. 沖's card once said
 // "written 氵 at the left, 氺 at the bottom", and 沖 has no 氺 (2026-11-15).
 // A row without its character list says nothing, rather than something general.
+// The wording is for a reader who reads no Chinese: "here" ties the line to
+// this character, and "its form" says 氵 is 水 written differently, not a new
+// character: "Written here as 氵, its form at the left."
 function formCap(part, char){
   const rows = (FORMS[part] || []).filter(r => r[2] && r[2].includes(char));
   if (!rows.length) return '';
-  return `<p class="pform">Written ${rows.map(([f, w]) =>
-    `<span class="zh" lang="zh-Hant">${esc(f)}</span> ${esc(w)}`).join(', ')}</p>`;
+  return `<p class="pform">Written here as ${rows.map(([f, w]) =>
+    `<span class="zh" lang="zh-Hant">${esc(f)}</span>, its form ${esc(w)}`).join('; ')}</p>`;
 }
 
 // The way into the argument. Each text with an entry for this character gets

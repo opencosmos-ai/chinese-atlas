@@ -144,7 +144,7 @@ class Site(unittest.TestCase):
             built = page.split("<b>Built from</b>", 1)[-1].split("</ul>", 1)[0]
             for p in parts:
                 for row in forms[p]:
-                    mark = f'<span class="zh" lang="zh-Hant">{row[0]}</span> {row[1]}'
+                    mark = f'<span class="zh" lang="zh-Hant">{row[0]}</span>, its form {row[1]}'
                     shown = len(row) > 2 and c["c"] in row[2]
                     self.assertEqual(mark in built, shown, (c["c"], p, row[:2]))
 
