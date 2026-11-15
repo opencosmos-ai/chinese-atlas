@@ -119,8 +119,11 @@ it, **Noto Serif TC** everywhere else, and **HanaMin** (花園明朝, GlyphWiki
 Project, Hanazono Font License) for the rare characters neither carries:
 CJK Extension A and B, which is where 說文's older forms and components live.
 The positional forms of parts (氵, 亻, 灬) are in the common fonts. Two that
-are not, ⺮ (bamboo, on top) and ⻊ (foot, at the left), wait for the
-rare-glyph subset to be rebuilt with `atlas/fonts.py`.
+are not, ⺮ (bamboo, on top) and ⻊ (foot, at the left), are in the Radicals
+Supplement, and HanaMin carries them (subset cut 2026-11-15). **A rare
+character reaches this font before it reaches a text's export**, so it never
+shows as a box: cut the subset against a build of the new export, merge here,
+then merge the text.
 Every text colour meets WCAG AA (4.5:1) on the surface it sits on, in both
 themes.
 
