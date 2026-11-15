@@ -145,7 +145,7 @@ if (PAGE !== 'atlas' && PAGE !== 'entry') return;   // index pages need no data
 const D = await (await fetch(DATA_URL)).json();
 
 const TEXTS = D.texts, TX = Object.fromEntries(TEXTS.map(t => [t.id, t]));
-const CH = D.chars, G = D.glyphs, BUILT = D.built;
+const CH = D.chars, G = D.glyphs, BUILT = D.built, FORMS = D.forms || {};
 const byChar = Object.fromEntries(CH.map(c => [c.c, c]));
 
 // ---------------------------------------------------------------- per-text view
@@ -211,6 +211,16 @@ function partBtn(ch, role, link){
       <span class="pt">${g[0] ? `<b>${esc(g[0])}</b>` : ''}
       <span${known || role === 'pho' ? '' : ' class="gap"'}>${esc(meaning)}</span></span>
     </${tag}>`;
+}
+
+// A part changes shape with its place: 水 is written 氵 at a character's left,
+// so 沖's water cannot be found by looking for 水. Said of the part in general,
+// which stays true where a character writes the part whole (信's 言).
+function formCap(ch){
+  const rows = FORMS[ch];
+  if (!rows || !rows.length) return '';
+  return `<p class="pform">Written ${rows.map(([f, w]) =>
+    `<span class="zh" lang="zh-Hant">${esc(f)}</span> ${esc(w)}`).join(', ')}</p>`;
 }
 
 // The way into the argument. Each text with an entry for this character gets
@@ -421,9 +431,9 @@ function cardHtml(chr, compact){
     h += `<section class="blk"><span class="lab">Built from</span>
       <div class="parts">
         ${c.sem.map(x => `<div class="pcol">${partBtn(x, 'sem', compact)}
-          <p class="pcap">Carries meaning</p></div>`).join('')}
+          <p class="pcap">Carries meaning</p>${formCap(x)}</div>`).join('')}
         ${c.pho.map(x => `<div class="pcol">${partBtn(x, 'pho', compact)}
-          <p class="pcap">Borrowed for sound alone</p></div>`).join('')}
+          <p class="pcap">Borrowed for sound alone</p>${formCap(x)}</div>`).join('')}
       </div>`;
     if (!compact && compSel){
       const n = (BUILT[compSel] || []).filter(x => byChar[x[0]] && view(byChar[x[0]])).length;
