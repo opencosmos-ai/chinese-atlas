@@ -214,11 +214,14 @@ function partBtn(ch, role, link){
 }
 
 // A part changes shape with its place: 水 is written 氵 at a character's left,
-// so 沖's water cannot be found by looking for 水. Said of the part in general,
-// which stays true where a character writes the part whole (信's 言).
-function formCap(ch){
-  const rows = FORMS[ch];
-  if (!rows || !rows.length) return '';
+// so 沖's water cannot be found by looking for 水. Each row names the characters
+// that write the part that way, and a row is shown only on their cards: a line
+// on a card is read as a claim about that character. 沖's card once said
+// "written 氵 at the left, 氺 at the bottom", and 沖 has no 氺 (2026-11-15).
+// A row without its character list says nothing, rather than something general.
+function formCap(part, char){
+  const rows = (FORMS[part] || []).filter(r => r[2] && r[2].includes(char));
+  if (!rows.length) return '';
   return `<p class="pform">Written ${rows.map(([f, w]) =>
     `<span class="zh" lang="zh-Hant">${esc(f)}</span> ${esc(w)}`).join(', ')}</p>`;
 }
@@ -431,9 +434,9 @@ function cardHtml(chr, compact){
     h += `<section class="blk"><span class="lab">Built from</span>
       <div class="parts">
         ${c.sem.map(x => `<div class="pcol">${partBtn(x, 'sem', compact)}
-          <p class="pcap">Carries meaning</p>${formCap(x)}</div>`).join('')}
+          <p class="pcap">Carries meaning</p>${formCap(x, c.c)}</div>`).join('')}
         ${c.pho.map(x => `<div class="pcol">${partBtn(x, 'pho', compact)}
-          <p class="pcap">Borrowed for sound alone</p>${formCap(x)}</div>`).join('')}
+          <p class="pcap">Borrowed for sound alone</p>${formCap(x, c.c)}</div>`).join('')}
       </div>`;
     if (!compact && compSel){
       const n = (BUILT[compSel] || []).filter(x => byChar[x[0]] && view(byChar[x[0]])).length;

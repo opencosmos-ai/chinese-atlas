@@ -139,9 +139,15 @@ def merge(exports, cfg=None):
             "entries": entries}
 
 
+def form_rows(rows, char):
+    """The rows of a part's forms that this character writes: a row lists its
+    characters third, and a row without them says nothing (2026-11-15)."""
+    return [r for r in rows or [] if len(r) > 2 and char in r[2]]
+
+
 def form_text(rows, zh=lambda f: f):
-    """'written 氵 at the left, 氺 at the bottom': how a part looks in place."""
-    return "written " + ", ".join(f"{zh(f)} {html.escape(w)}" for f, w in rows)
+    """'written 氵 at the left': how a part looks in this character."""
+    return "written " + ", ".join(f"{zh(r[0])} {html.escape(r[1])}" for r in rows)
 
 
 def rare_uncovered(site):
@@ -614,7 +620,7 @@ try {{ var t = localStorage.getItem("atlas-theme");
             pin, gloss = (glyphs.get(g) or ["", ""])
             return (f'<li><span class="zh" lang="zh-Hant">{e(g)}</span> {e(pin)}'
                     f'{" — " + e(gloss) if gloss else ""} ({role}'
-                    f'{"; " + form_text(forms[g], zh) if forms.get(g) else ""})</li>')
+                    f'{"; " + form_text(form_rows(forms.get(g), char), zh) if form_rows(forms.get(g), char) else ""})</li>')
         parts = ([part(g, "carries meaning") for g in c.get("sem") or []] +
                  [part(g, "borrowed for its sound") for g in c.get("pho") or []])
         built = (f'<p class="legend"><b>Built from</b></p><ul>{"".join(parts)}</ul>'
@@ -669,7 +675,8 @@ try {{ var t = localStorage.getItem("atlas-theme");
                  "sound, per 說文), `def` (說文's definition), and `t[text id]` with `g` (the "
                  "English), `lock` (1 if settled), `n` (occurrences), `chs` (chapters) and "
                  "`entries` (glossary slugs). `glyphs` maps a part to [pinyin, gloss], and `forms` maps a part to the "
-                 "[form, where] pairs that say how it is written by position (水 → 氵, at the left). "
+                 "[form, where, characters] rows that say how it is written, and in which characters "
+                 "(水 → 氵, at the left, in 沖 治 法 …). "
                  "`where[text id][character]` lists [line id, count] pairs, and "
                  "`lines[text id][line id]` is [Chinese, pinyin, English, exact, verse] (exact is 0 where the line pairing is approximate; "
                  "verse is the English line that renders it, 0 where none does): every line "

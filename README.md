@@ -69,15 +69,19 @@ character with a glossary entry takes its English from `glossary/`.
 part in its full form, and a part changes shape with its position: 水 (*shuǐ* —
 water) is written 氵 at a character's left. So a card that said only "built
 from 水" sent the reader looking for a 水 that 沖 (*chōng*) does not show
-(2026-11-15). Each part's tile now says how it is written, *"Written 氵 at the
-left, 氺 at the bottom,"* from the export's `forms` key
-(`{part: [[form, where], …]}`), which the Tao Te Ching keeps in
-`sources/component-forms.yaml`; the design is recorded in that repository's
+(2026-11-15). Each part's tile now says how it is written *in this character*:
+*"Written 氵 at the left"* under 沖's 水, *"Written 氺 at the bottom"* under
+泰's, and nothing under 益's, which lays 水 sideways on top. It comes from the
+export's `forms` key (`{part: [[form, where, chars], …]}`), which the Tao Te
+Ching keeps in `sources/component-forms.yaml`; the design is recorded in that repository's
 [`ARCHITECTURE.md`](https://github.com/opencosmos-ai/taoteching/blob/main/ARCHITECTURE.md)
 → *How the work reaches readers*. The atlas merges `forms` across texts, the
 first text to state a part's form speaking for all, and an export without the
-key adds none, so contract 1 is unchanged. The line describes the part, never
-one character, so it stays true where a character writes the part whole.
+key adds none, so contract 1 is unchanged. **A row shows only on the cards of
+the characters it lists.** *Corrected 2026-11-15:* the first version showed
+every form of a part on every card built from it, as a general statement, and
+沖's card claimed a 氺 that 沖 does not have. A line on a card is read as a
+claim about that card's character.
 [`process/skills/suggest-edit/SKILL.md`](https://github.com/opencosmos-ai/taoteching/blob/main/process/skills/suggest-edit/SKILL.md)
 routes each part of a card to its file, says which are pull requests and which
 need an issue first, and gives the rebuild. That repository's CI refuses a PR
