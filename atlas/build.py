@@ -170,6 +170,16 @@ class Site:
         self.family = cfg["site"]["family"]
         self.repo_url = f'https://github.com/{cfg["site"]["repo"]}'
         self.chars = {c["c"]: c for c in data["chars"]}
+        self.sources = {tid: {r["id"]: r for r in x["sources"]["records"]}
+                        for tid, x in exports.items() if "sources" in x}
+        for t in data["texts"]:
+            page = (t.get("reader") or {}).get("sources")
+            if page:
+                parsed = urllib.parse.urlsplit(page)
+                if parsed.scheme not in ("https", "http") or not parsed.netloc or parsed.fragment:
+                    raise ValueError(f"{t['id']}: reader.sources must be an absolute web URL without a fragment")
+                if t["id"] not in self.sources:
+                    raise ValueError(f"{t['id']}: reader.sources requires a source registry in the export")
 
     def char_url(self, c):
         return f"{self.base}{urllib.parse.quote(c)}/"
@@ -445,6 +455,60 @@ try {{ var t = localStorage.getItem("atlas-theme");
             repo_url=lambda p: f"https://github.com/{repo}/blob/main/{urllib.parse.quote(p)}",
             known_chars=frozenset(self.chars), unit_url=unit_url, unit_words=words)
 
+    def entry_sources(self, t, en):
+        page = (t.get("reader") or {}).get("sources")
+        if not page:
+            return ""
+        tid = t["id"]
+        status = en.get("refs_status")
+        refs = en.get("refs")
+        if status not in ("complete", "incomplete") or not isinstance(refs, list):
+            raise ValueError(f"{tid}/{en['slug']}: invalid source citation fields")
+
+        def source_link(sid):
+            source = self.sources[tid].get(sid)
+            if not source:
+                raise ValueError(f"{tid}/{en['slug']}: unknown citation source {sid!r}")
+            anchor = urllib.parse.quote(sid, safe="")
+            return f'<a href="{e(page)}#{anchor}">{e(source["name"])}</a>'
+
+        rows = []
+        for ref in refs:
+            source = ref["source"]
+            chain = ref["chain"]
+            locator, url = ref.get("locator"), ref.get("url")
+            if not locator and not url:
+                raise ValueError(f"{tid}/{en['slug']}: citation for {source} needs a passage location")
+            link = source_link(source)
+            intermediaries = [source_link(sid) for sid in chain]
+            if intermediaries:
+                link += " via " + " → ".join(intermediaries)
+            if ref.get("edition"):
+                editions = self.sources[tid][source]["editions"]
+                edition = next((row for row in editions if row["id"] == ref["edition"]), None)
+                if not edition:
+                    raise ValueError(f"{tid}/{en['slug']}: unknown edition {ref['edition']!r} for {source}")
+                link += f' · {e(edition["title"])}'
+            if url:
+                parsed = urllib.parse.urlsplit(url)
+                if not parsed.scheme and not parsed.netloc and parsed.path and not parsed.path.startswith("/"):
+                    path = f'/{t["repo"]}/blob/main/{urllib.parse.quote(parsed.path)}'
+                    fragment = urllib.parse.quote(parsed.fragment)
+                    url = urllib.parse.urlunsplit(("https", "github.com", path, parsed.query, fragment))
+                elif parsed.scheme not in ("https", "http") or not parsed.netloc:
+                    raise ValueError(f"{tid}/{en['slug']}: invalid passage URL for {source}")
+                link += f' · <a href="{e(url)}">{e(locator or "Passage")}</a>'
+            elif locator:
+                link += f" · {e(locator)}"
+            rows.append(f"<li>{link}</li>")
+
+        notice = '<p>Citation records are incomplete.</p>' if status == "incomplete" else ""
+        items = f'<ul>{"".join(rows)}</ul>' if rows else ""
+        if not notice and not items:
+            return ""
+        return ('<section class="entry-sources" aria-labelledby="entry-sources">'
+                f'<h2 id="entry-sources">Sources</h2>{notice}{items}</section>')
+
     def entry_page(self, tid, en):
         t = next(t for t in self.data["texts"] if t["id"] == tid)
         body = md.render(en["body"], self.md_ctx(tid))
@@ -473,6 +537,7 @@ try {{ var t = localStorage.getItem("atlas-theme");
 <div class="entry-room" style="margin-top:0">
 <article>
   <div class="prose">{body}</div>
+  {self.entry_sources(t, en)}
   <p class="source">This page is <a href="https://github.com/{e(repo)}/blob/main/{e(en["path"])}"><code>{e(en["path"])}</code></a>
   in <a href="https://github.com/{e(repo)}">{e(repo)}</a>, rendered as written.
   Edit it there, and this page follows.</p>
@@ -610,8 +675,10 @@ try {{ var t = localStorage.getItem("atlas-theme");
                 return f'<a href="{e(rd["unit"].replace("{unit}", str(n)))}">{n}</a>'
             where = (f' Appears {r["n"]} times, in chapter{"" if len(chs) == 1 else "s"} '
                      f'{", ".join(unit(n) for n in chs)}.' if chs else "")
+            sources = (f' <a href="{e(rd["sources"])}">Translation sources</a>.'
+                       if rd and rd.get("sources") else "")
             rows.append(f'<p><b>{e(t["title"])}:</b> {e(r["g"] or "not yet glossed")}.'
-                        f'{links}{where}</p>')
+                        f'{links}{where}{sources}</p>')
 
         forms = self.data.get("forms") or {}
 

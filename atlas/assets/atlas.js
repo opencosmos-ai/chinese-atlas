@@ -504,6 +504,10 @@ function cardHtml(chr, compact){
   } else {
     for (const t of present) h += heatSection(c, t, 'full');
   }
+  for (const t of present){
+    if (t.reader?.sources)
+      h += `<p class="legend"><a href="${esc(t.reader.sources)}">Sources for ${esc(t.title)}</a></p>`;
+  }
   return h;
 }
 

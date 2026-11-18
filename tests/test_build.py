@@ -8,6 +8,7 @@ import re
 import tempfile
 import unittest
 import urllib.parse
+from copy import deepcopy
 from pathlib import Path
 
 from atlas import build
@@ -103,6 +104,52 @@ class Site(unittest.TestCase):
         for n in (6, 41, 52):
             self.assertIn(
                 f'href="https://opencosmos.ai/library/sources/taoism-tao-te-ching/{n}"', card)
+
+    def test_source_footers_use_registry_anchors_and_show_incomplete_citations(self):
+        cfg = json.loads((ROOT / "texts.json").read_text(encoding="utf-8"))
+        page_url = "https://example.test/translation/sources"
+        cfg["texts"][0]["reader"]["sources"] = page_url
+        tid = cfg["texts"][0]["id"]
+        exports = deepcopy(self.exports)
+        export = exports[tid]
+        export["sources"] = {"records": [
+            {"id": "historical-work", "name": "Historical Work",
+             "editions": [{"id": "reprint", "title": "Reprint Edition"}]},
+            {"id": "catalogue", "name": "Research Catalogue"},
+        ]}
+        for entry in export["entries"]:
+            entry.update(refs_status="complete", refs=[])
+        cited, incomplete, complete = export["entries"][:3]
+        cited.update(refs_status="incomplete", refs=[{
+            "source": "historical-work", "via": "catalogue", "chain": ["catalogue"], "edition": "reprint",
+            "locator": "Entry 3 & note 2", "url": "https://example.test/entry?q=3&note=2",
+        }, {
+            "source": "catalogue", "chain": [], "locator": "Manuscript notes",
+            "url": "notes/manuscript.md#chapter-1",
+        }])
+        incomplete["refs_status"] = "incomplete"
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "site"
+            site = build.Site(cfg, build.merge(exports, cfg), exports, "/", out)
+            site.build()
+            pages = [(out / "glossary" / tid / en["slug"] / "index.html").read_text(encoding="utf-8")
+                     for en in (cited, incomplete, complete)]
+            self.assertIn(f'<a href="{page_url}#historical-work">Historical Work</a> via ', pages[0])
+            self.assertIn(f'<a href="{page_url}#catalogue">Research Catalogue</a>', pages[0])
+            self.assertIn(' · Reprint Edition · ', pages[0])
+            self.assertIn('<a href="https://example.test/entry?q=3&amp;note=2">Entry 3 &amp; note 2</a>',
+                          pages[0])
+            self.assertIn('https://github.com/opencosmos-ai/taoteching/blob/main/notes/manuscript.md#chapter-1', pages[0])
+            self.assertIn("Citation records are incomplete.", pages[0])
+            self.assertIn("Citation records are incomplete.", pages[1])
+            self.assertNotIn('class="entry-sources"', pages[2])
+            card = (out / self.data["chars"][0]["c"] / "index.html").read_text(encoding="utf-8")
+            self.assertIn(f'<a href="{page_url}">Translation sources</a>', card)
+
+            cited["refs"][0]["source"] = "unknown"
+            with self.assertRaisesRegex(ValueError, "unknown citation source"):
+                site.entry_sources(site.data["texts"][0], cited)
 
     def test_a_covering_entry_is_named_not_passed_off_as_the_characters_own(self):
         # 營 is ruled inside 魄's entry, as "housing"; its card must not read

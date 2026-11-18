@@ -575,6 +575,12 @@ footer a{color:var(--ink-2);text-underline-offset:3px}
 .source{margin-top:34px;padding-top:14px;border-top:1px solid var(--rule);
   font-size:13px;color:var(--ink-3)}
 .source a{color:var(--ink-2)}
+.entry-sources{margin-top:34px;padding-top:14px;border-top:1px solid var(--rule);
+  color:var(--ink-2);line-height:1.5}
+.entry-sources h2{margin:0 0 8px;font-size:19px}
+.entry-sources p,.entry-sources ul{margin:0 0 8px}
+.entry-sources ul{padding-left:22px}
+.entry-sources + .source{margin-top:20px;padding-top:0;border-top:0}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .chips button{font-family:var(--han);font-size:20px;text-transform:none;
   letter-spacing:0;padding:3px 10px;color:var(--ink)}

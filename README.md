@@ -106,6 +106,12 @@ whose export is stale, and a merge to its `main` signals this one to rebuild
 3. Add a step to that repository's CI that sends `text-updated` here (see
    `taoteching/.github/workflows/notify-atlas.yml`).
 
+When the export publishes `sources.records` and `entries[].refs`, and the
+translation's sources page is live, set the absolute page URL in `reader.sources`
+in `texts.json`. Character pages link to the page, and glossary footers link
+to the cited source IDs and show passage locators as supplied by the export.
+Check the deployed page for those source ID anchors before adding the URL.
+
 ## Running it
 
 ```bash
