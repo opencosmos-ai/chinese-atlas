@@ -100,6 +100,11 @@ def merge(exports, cfg=None):
             for k in SHARED:
                 if not m.get(k) and c.get(k):
                     m[k] = c[k]
+            # A definition and its reading travel together. The card's pinyin
+            # comes from the text and can name a different word.
+            definition = c.get("shuowen") or {}
+            if not m.get("shuowen") and (definition.get("english") or "").strip():
+                m["shuowen"] = definition
             # A character's pinyin is taken from its first token, which may open
             # a sentence; a dictionary reading is lowercase.
             if m.get("p"):
@@ -694,10 +699,15 @@ try {{ var t = localStorage.getItem("atlas-theme");
                  [part(g, "borrowed for its sound") for g in c.get("pho") or []])
         built = (f'<p class="legend"><b>Built from</b></p><ul>{"".join(parts)}</ul>'
                  if parts else "")
-        swz = (f'<p class="legend"><b>說文解字</b> (c. 100 CE): '
-               f'<span class="zh" lang="zh-Hant">{e(c["def"])}</span></p>' if c.get("def") else "")
+        shuowen = ""
+        if definition := c.get("shuowen"):
+            pinyin = definition.get("pinyin")
+            reading = f'<span lang="zh-Latn-pinyin">{e(pinyin)}</span> — ' if pinyin else ""
+            shuowen = ('<section class="blk shuowen" aria-label="Shuowen Jiezi">'
+                       '<span class="lab">Shuowen Jiezi · c. 100 CE</span>'
+                       f'<p class="swen">{reading}{e(definition["english"])}</p></section>')
         return (f'<div class="hero"><div class="big" lang="zh-Hant">{e(char)}</div><div class="meta">'
-                f'<div class="pin">{e(c["p"])}</div>{"".join(rows)}</div></div>{built}{swz}')
+                f'<div class="pin">{e(c["p"])}</div>{"".join(rows)}</div></div>{built}{shuowen}')
 
     def entry_head(self, tid, en):
         t = next(t for t in self.data["texts"] if t["id"] == tid)
@@ -741,7 +751,8 @@ try {{ var t = localStorage.getItem("atlas-theme");
                  "## Data", "",
                  f"- [data.json]({root}assets/data.json): every character. `chars[]` has "
                  "`c` (the character), `p` (pinyin), `sem`/`pho` (parts that carry meaning / "
-                 "sound, per 說文), `def` (說文's definition), and `t[text id]` with `g` (the "
+                 "sound, per the Shuowen), `def` (the dictionary's source text), "
+                 "`shuowen` (English definition and optional pinyin for its sense), and `t[text id]` with `g` (the "
                  "English), `lock` (1 if settled), `n` (occurrences), `chs` (chapters) and "
                  "`entries` (glossary slugs). `glyphs` maps a part to [pinyin, gloss], and `forms` maps a part to the "
                  "[form, where, characters] rows that say how it is written, and in which characters "

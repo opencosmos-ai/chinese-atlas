@@ -90,6 +90,23 @@ class Site(unittest.TestCase):
                 if r.get("chs"):
                     self.assertIn(f'Appears {r["n"]} times', card, c["c"])
 
+    def test_shuowen_card_pairs_its_own_reading_with_an_english_definition(self):
+        cfg = json.loads((ROOT / "texts.json").read_text(encoding="utf-8"))
+        exports = deepcopy(self.exports)
+        char = next(c for c in exports["tao-te-ching"]["chars"] if c["c"] == "\u57cf")
+        char.update(p="shān", shuowen={"pinyin": "yán", "english": "The far reaches of the earth."})
+        site = build.Site(cfg, build.merge(exports, cfg), exports, "/", self.out)
+        card = site.static_card(char["c"])
+        self.assertIn('<div class="pin">shān</div>', card)
+        self.assertIn('<span lang="zh-Latn-pinyin">yán</span> — The far reaches of the earth.', card)
+        self.assertNotIn(char["def"], card)
+
+        char["shuowen"] = {"pinyin": "yán"}
+        site = build.Site(cfg, build.merge(exports, cfg), exports, "/", self.out)
+        card = site.static_card(char["c"])
+        self.assertNotIn('class="blk shuowen"', card)
+        self.assertNotIn(char["def"], card)
+
     def test_a_line_knows_the_english_line_the_reader_opens(self):
         """A citation opens the translation's reader at the English line that
         renders the Chinese one. Ch 41's first line is its first English line."""

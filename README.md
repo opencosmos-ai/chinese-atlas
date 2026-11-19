@@ -29,9 +29,9 @@ it.
 
 Both rooms are drawn by `atlas.js`, and a reader that runs no script still
 gets the substance. Every character page carries its renderings, its glossary
-links, where it occurs, its parts and its 說文 line as plain HTML, which the
-script replaces on load. The glossary index lists every entry the same way, and
-entry pages are static throughout.
+links, where it occurs, its parts and any English Shuowen definition as plain
+HTML, which the script replaces on load. The glossary index lists every entry
+the same way, and entry pages are static throughout.
 
 - **`/llms.txt`**: what the site is, the data files and their fields, every
   entry with a link to its Markdown source, and how to suggest a change.
@@ -137,21 +137,13 @@ then merge the text.
 Every text colour meets WCAG AA (4.5:1) on the surface it sits on, in both
 themes.
 
-## Deferred
+## Shuowen definitions
 
-**說文解字's definitions are hidden from the card** (2026-10-14, Shalom's call).
-Each character's 說文 line is Xu Shen's definition, c. 100 CE. It was shown in
-Chinese, with English only where a glossary entry had translated it by hand:
-three of 798. For a reader who does not read Chinese, the box was noise in the
-most prominent place on the card. The block is commented out in
-`atlas/assets/atlas.js`; the data still ships, so restoring it is uncommenting.
-
-**Before it returns it must be accessible to English-only readers**, for
-example: the structural half rendered in English from the parse the atlas
-already has ("from 彳, with 巠 for sound"), and the definitions translated, by
-hand or by glossary entries. The *Built from* tiles, which come from the same
-analysis, stay. **Revisit by 2026-12-14** —
-`.github/workflows/revisit-shuowen.yml` opens an issue that day.
+The card shows Xu Shen's dictionary sense when the translation export provides
+an English definition in `chars[].shuowen`. When supplied, the dictionary's
+pinyin appears with that definition. The card heading gives the reading in the
+translation. On 埏 (*shān* — knead), Chapter 11 supplies the heading and the
+dictionary section pairs *yán* with “the far reaches of the earth.”
 
 ## Licence
 
