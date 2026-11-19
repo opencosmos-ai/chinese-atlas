@@ -461,27 +461,13 @@ function cardHtml(chr, compact){
         offer.length > 1 ? `Suggest an edit · ${t.title}` : '')).join('')}</div>`;
   }
 
-  /* HIDDEN, 2026-10-14 — Shalom's call. The 說文解字 block (Xu Shen's definition,
-     c. 100 CE) is commented out until it is accessible to readers who do not
-     read Chinese. Only the few characters whose glossary entry translates
-     their line have English, so for this atlas's reader nearly every
-     box was Chinese they could not use, in the most prominent place on the
-     card. Revisit by 2026-12-14 (.github/workflows/revisit-shuowen.yml opens
-     an issue that day; README.md → Deferred). The data is still in data.json
-     (c.def, c.defen, c.hw, c.fq), so restoring it is uncommenting this block.
-
-  // if (c.def){
-  //   h += `<section class="blk"><span class="lab">說文解字 · c. 100 CE</span>
-  //     <div class="swz">${esc(c.def)}</div>`;
-  //   // The English is hand-made, from a glossary entry; where no entry has
-  //   // translated the line yet, the Chinese stands alone.
-  //   if (c.defen) h += `<p class="swen">${esc(c.defen)}</p>`;
-  //   const facts = (c.hw && c.hw !== c.c ? `Filed under the older graph ${esc(c.hw)}. ` : '') +
-  //     (c.fq ? `Middle Chinese spelling ${esc(c.fq)}.` : '');
-  //   if (facts) h += `<p class="note">${facts.trim()}</p>`;
-  //   h += `</section>`;
-  // }
-  */
+  if (c.shuowen){
+    const {pinyin, english} = c.shuowen;
+    const reading = pinyin ? `<span lang="zh-Latn-pinyin">${esc(pinyin)}</span> — ` : '';
+    h += `<section class="blk shuowen" aria-label="Shuowen Jiezi">
+      <span class="lab">Shuowen Jiezi · c. 100 CE</span>
+      <p class="swen">${reading}${esc(english)}</p></section>`;
+  }
 
   if (compact){
     h += `<a class="open" href="${charUrl(c.c)}">Open ${esc(c.c)} in the atlas →</a>`;
@@ -503,6 +489,10 @@ function cardHtml(chr, compact){
     }
   } else {
     for (const t of present) h += heatSection(c, t, 'full');
+  }
+  for (const t of present){
+    if (t.reader?.sources)
+      h += `<p class="legend"><a href="${esc(t.reader.sources)}">Sources for ${esc(t.title)}</a></p>`;
   }
   return h;
 }
