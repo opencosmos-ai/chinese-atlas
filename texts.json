@@ -43,7 +43,8 @@
       "reader": {
         "name": "the Open Tao Te Ching",
         "unit": "https://opencosmos.ai/library/sources/taoism-tao-te-ching/{unit}",
-        "line": "https://opencosmos.ai/library/sources/taoism-tao-te-ching/{unit}#verse-{verse}"
+        "line": "https://opencosmos.ai/library/sources/taoism-tao-te-ching/{unit}#verse-{verse}",
+        "sources": "https://opencosmos.ai/library/sources/taoism-tao-te-ching/sources"
       }
     }
   ]
